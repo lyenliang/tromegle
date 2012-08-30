@@ -8,6 +8,7 @@ from urllib import urlencode
 from collections import deque, namedtuple
 from weakref import WeakValueDictionary
 import urllib2 as url
+from random import choice
 
 
 Event = namedtuple('OmegleEvent', ['id', 'type', 'data'])
@@ -22,6 +23,10 @@ class Stranger(object):
     SEND = OMEGLE + "send"
     TYPING = OMEGLE + "typing"
     DISCONNECT = OMEGLE + "disconnect"
+
+    UAGENT = ["Mozilla/5.0 (Windows NT 6.1; WOW64; rv:14.0) Gecko/20100101 Firefox/14.0.1",
+              "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; FDM; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 1.1.4322)",
+              "Mozilla/5.0 (Windows; U; Windows NT 6.1; es-AR; rv:1.9) Gecko/2008051206 Firefox/3.0"]
 
     def __init__(self, name):
         self.typing = False
@@ -38,7 +43,10 @@ class Stranger(object):
     def getEventsPage(self):
         # We build a request object for the current stranger
         # The request object just polls the ~/events page, specifying an id
-        events = url.Request(self.EVENTS, urlencode({'id': self.id}))
+        data = urlencode({'id': self.id})
+        headers = {'User-Agent': choice(self.UAGENT)}
+        events = url.Request(self.EVENTS, data, headers)
+        print events  # DEBUG
         return events
 
     def checkConnect(self, events):
@@ -121,6 +129,7 @@ class Viewport(object):
 
     def notify(self, eventlist):
         for ev in eventlist:
+            print ev.type  # DEBUG
             self.callbacks[ev.type](ev)
 
     def onWaiting(self, ev):
@@ -134,7 +143,7 @@ class Viewport(object):
         print self.strangers[ev.id].name, "connected!"
 
     def onTyping(self, ev):
-        print "Typing..."
+        pass  # DEBUG - Keep onTyping events from raising exceptions
 
     def gotMessage(self, ev):
         print self.strangers[ev.id].name + ":  ", ev.data
@@ -156,7 +165,7 @@ class MiddleMan(object):
         strangers = [Stranger('Stranger_' + str(i + 1)) for i in xrange(2)]
         self.strangers = {s.id: s for s in strangers}
 
-    def getEvents(self):
+    def pumpEvents(self):
         # Thread this...
         # You want to fetch events for each stranger seperately
         eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
@@ -190,7 +199,8 @@ class MiddleMan(object):
 
     def go(self):
         while True:
-            self.getEvents()
+            print 'DEBUG'  # DEBUG
+            self.pumpEvents()
 
 
 class ChatRoom(object):  # consider inheriting from viewport?
