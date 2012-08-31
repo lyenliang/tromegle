@@ -29,24 +29,25 @@ class Stranger(object):
               "Mozilla/5.0 (Windows; U; Windows NT 6.1; es-AR; rv:1.9) Gecko/2008051206 Firefox/3.0"]
 
     def __init__(self, name):
-        self.typing = False
+        self.typing = False  # Indicates whether the stranger sees you as typing
         self.isconnected = False
         self.name = name
 
+        self.agent = {'User-Agent': choice(self.UAGENT)}
         self.id = self.getStrangerID()
         self.events = self.getEventsPage()
 
     def getStrangerID(self):
-        strangerID = url.urlopen(self.START, '')
+        req = url.Request(self.START, '', self.agent)
+        strangerID = url.urlopen(req)
+        # strangerID = url.urlopen(self.START, '')
         return strangerID.read().replace('"', '')
 
     def getEventsPage(self):
         # We build a request object for the current stranger
         # The request object just polls the ~/events page, specifying an id
         data = urlencode({'id': self.id})
-        headers = {'User-Agent': choice(self.UAGENT)}
-        events = url.Request(self.EVENTS, data, headers)
-        print events  # DEBUG
+        events = url.Request(self.EVENTS, data, self.agent)
         return events
 
     def checkConnect(self, events):
@@ -58,7 +59,10 @@ class Stranger(object):
         return self.isconnected
 
     def toggle_typing(self):
-        typing = url.urlopen(self.TYPING, '&id=' + self.id)
+        data = urlencode({'id': self.id})
+        req = url.Request(self.TYPING, data, self.agent)
+        typing = url.urlopen(req)
+        # typing = url.urlopen(self.TYPING, '&id=' + self.id)
         typing.close()
         self.typing = not self.typing
         return self.typing
@@ -66,11 +70,17 @@ class Stranger(object):
     def sendMessage(self, msg):
         # NOTE:  this function takes the msg param because the outbuffer
         # is the responsibility of the user, not his partner!
-        send = url.urlopen(self.SEND, '&msg=' + msg + '&id=' + self.id)
+        data = urlencode({'msg': msg, 'id': self.id})
+        req = url.Request(self.SEND, data, self.agent)
+        send = url.urlopen(req)
+        #send = url.urlopen(self.SEND, '&msg=' + msg + '&id=' + self.id)
         send.close()
 
     def announceDisconnect(self):
-        politeExit = url.urlopen(self.DISCONNECT, '&id=' + self.id)
+        data = urlencode({'id': self.id})
+        req = url.Request(self.DISCONNECT, data, self.agent)
+        politeExit = url.urlopen(req)
+        # politeExit = url.urlopen(self.DISCONNECT, '&id=' + self.id)
         politeExit.close()
 
     def pullEvents(self):
@@ -116,6 +126,7 @@ class Viewport(object):
             self.callbacks = {'waiting': self.onWaiting,
                               'connected': self.onConnect,
                               'typing': self.onTyping,
+                              'stoppedTyping': self.onStoppedTyping,
                               'gotMessage': self.gotMessage,
                               'strangerDisconnected': self.onDisconnect
                              }
@@ -129,7 +140,6 @@ class Viewport(object):
 
     def notify(self, eventlist):
         for ev in eventlist:
-            print ev.type  # DEBUG
             self.callbacks[ev.type](ev)
 
     def onWaiting(self, ev):
@@ -143,7 +153,10 @@ class Viewport(object):
         print self.strangers[ev.id].name, "connected!"
 
     def onTyping(self, ev):
-        pass  # DEBUG - Keep onTyping events from raising exceptions
+        pass  # DEBUG - Keep typing events from raising exceptions
+
+    def onStoppedTyping(self, ev):
+        pass  # DEBUG - Keep stoppedTyping events from raising execptions
 
     def gotMessage(self, ev):
         print self.strangers[ev.id].name + ":  ", ev.data
@@ -169,25 +182,22 @@ class MiddleMan(object):
         # Thread this...
         # You want to fetch events for each stranger seperately
         eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
-        # print "Got events..."  # DEBUG
         stranger_IDs = [self.strangers[s].id for s in self.strangers]
-        for idstr, evts in enumerate(eventPolls):
+        for id_idx, evts in enumerate(eventPolls):
             self.view.notify(evts)
-            self.notify(evts)
+            self.notify(evts, stranger_IDs[id_idx])
 
-            messages = [e for e in evts if e.type == "gotMessage"]
-            if messages is not []:
-                self.propagateMessages(stranger_IDs[idstr], messages)
-
-    def propagateMessages(self, idstr, eventlist):
-        targets = [self.strangers[s] for s in self.strangers if self.strangers[s].id != idstr]
+    def propagateMessage(self, msg_ev, stranger_id):
+        targets = [self.strangers[s] for s in self.strangers if self.strangers[s].id != stranger_id]
         for stranger in targets:
-            for ev in eventlist:
+            for ev in msg_ev:
                 stranger.sendMessage(ev.data)
 
-    def notify(self, evts):
+    def notify(self, evts, stranger_id):
         for ev in evts:
-            if ev.type == "strangerDisconnected":
+            if ev.type == "gotMessage":
+                self.propagateMessage(ev, stranger_id)
+            elif ev.type == "strangerDisconnected":
                 self.strangers.pop(ev.id)
                 # politely exit
                 for key in self.strangers:
@@ -199,7 +209,6 @@ class MiddleMan(object):
 
     def go(self):
         while True:
-            print 'DEBUG'  # DEBUG
             self.pumpEvents()
 
 
@@ -218,3 +227,15 @@ class Ominer(object):
     logs them until a stranger disconnects.
     """
     pass
+
+
+class TestEvents(MiddleMan):
+    def pumpEvents(self):
+        eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
+        stranger_IDs = [self.strangers[s].id for s in self.strangers]
+        for id_idx, evts in enumerate(eventPolls):
+            print evts
+            self.notify(evts)
+            messages = [e for e in evts if e.type == "gotMessage"]
+            if messages != []:
+                self.propagateMessages(stranger_IDs[id_idx], messages)
