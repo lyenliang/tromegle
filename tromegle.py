@@ -181,28 +181,22 @@ class MiddleMan(object):
     def pumpEvents(self):
         # Thread this...
         # You want to fetch events for each stranger seperately
-        for stranger_id in self.strangers:
-            events = self.strangers[stranger_id].pullEvents()
-            self.view.notify(events)
-            self.notify(events)
+        eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
+        stranger_IDs = [self.strangers[s].id for s in self.strangers]
+        for id_idx, evts in enumerate(eventPolls):
+            self.view.notify(evts)
+            self.notify(evts, stranger_IDs[id_idx])
 
-    def propagateMessage(self, msg_ev):
-        targets = [self.strangers[s] for s in self.strangers if s != msg_ev.id]
+    def propagateMessage(self, msg_ev, stranger_id):
+        targets = [self.strangers[s] for s in self.strangers if self.strangers[s].id != stranger_id]
         for stranger in targets:
             for ev in msg_ev:
                 stranger.sendMessage(ev.data)
 
-    def notify(self, evts):
+    def notify(self, evts, stranger_id):
         for ev in evts:
             if ev.type == "gotMessage":
-                self.propagateMessage(ev)
-            if ev.type == "typing" or ev.type == "stoppedTyping":
-                targets = [self.strangers[s] for s in self.strangers if s != ev.id]
-                for stranger in targets:
-                    if ev.type == "typing" and not stranger.typing:
-                        stranger.toggle_typing()
-                    elif ev.type == "stoppedTyping" and stranger.typing:
-                        stranger.toggle_typing()
+                self.propagateMessage(ev, stranger_id)
             elif ev.type == "strangerDisconnected":
                 self.strangers.pop(ev.id)
                 # politely exit
@@ -237,9 +231,11 @@ class Ominer(object):
 
 class TestEvents(MiddleMan):
     def pumpEvents(self):
-        print "Pulling events..."
-        for stranger_id in self.strangers:
-            events = self.strangers[stranger_id].pullEvents()
-            for ev in events:
-                print ev
-            self.notify(events)
+        eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
+        stranger_IDs = [self.strangers[s].id for s in self.strangers]
+        for id_idx, evts in enumerate(eventPolls):
+            print evts
+            self.notify(evts)
+            messages = [e for e in evts if e.type == "gotMessage"]
+            if messages != []:
+                self.propagateMessages(stranger_IDs[id_idx], messages)
