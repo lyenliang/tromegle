@@ -99,7 +99,8 @@ class Stranger(object):
         from _getStrangerID
         """
         self.id = body.replace('"', '')
-        self.troll.feed(Event(self.id, 'idSet', ''))  # ready to go!
+        ev = Event(self.id, 'idSet', '')
+        self.troll.feed(ev)  # ready to go!
 
     def parse_raw_events(self, events):
         """Produce OmegleEvents from a list of raw events.
@@ -108,19 +109,18 @@ class Stranger(object):
             an omegle subpage.
         """
         events = loads(events)  # json.loads
-        # Events == None every time... urlencoding probably screwed up
-        if events:
-            parsedEvts = []
-            for ev in (e for e in events):
-                if len(ev) == 1:
-                    data = None
-                else:
-                    data = ev[1]
-                parsedEvts.append(Event(self.id, ev[0].encode('ascii'), data))
+        if events is None:
+            return tuple()
 
-            return parsedEvts
-        else:
-            return Event(self.id, 'tick', None)
+        parsedEvts = []
+        for ev in (e for e in events):
+            if len(ev) == 1:
+                data = None
+            else:
+                data = ev[1]
+            parsedEvts.append(Event(self.id, ev[0].encode('ascii'), data))  # move to function with 'yield' for memory efficiency?
+
+        return parsedEvts
 
     def getEventsPage(self):
         d = self.request('events', {'id': self.id})
@@ -151,8 +151,7 @@ class TrollReactor(object):
         self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(n)}
         self._waiting = len(self._volatile.keys())
         self.strangers = {}
-        self.callbacks = {'tick': self.on_tick,
-                          'idSet': self.on_idSet,
+        self.callbacks = {'idSet': self.on_idSet,
                           'waiting': self.on_waiting,
                           'connected': self.on_connected,
                           'typing': self.on_typing,
@@ -162,13 +161,10 @@ class TrollReactor(object):
 
         # Now we wait to receive idSet events
 
-    def _startTrolling(self):
+    def pumpEvents(self):
         for id_ in self.strangers:
             self.strangers[id_].getEventsPage()
-
-    def on_tick(self, ev):
-        print ev  # DEBUG
-        reactor.callLater(self.refresh, self.strangers[ev.id].getEventsPage)
+            reactor.callLater(self.refresh, self.pumpEvents)
 
     def on_idSet(self, ev):
         for s in self._volatile:
@@ -176,7 +172,7 @@ class TrollReactor(object):
                 self.strangers[s.id] = s  # move to {id: stranger} dict
                 self._waiting -= 1
         if self._waiting == 0:
-            self._startTrolling()
+            self.pumpEvents()
         elif self._waiting < 0:
             print_stack()
             stderr.write("ERROR:  too many stranger IDs.")
@@ -204,7 +200,7 @@ class TrollReactor(object):
         """Notify the TrollReactor of an event.
         """
         if hasattr(events, '_fields'):
-            events = (events,)  # tuplify
+            events = (events,)  # convert to tuple
 
         for ev in events:
             self.callbacks[ev.type](ev)
