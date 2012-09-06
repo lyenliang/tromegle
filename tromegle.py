@@ -2,240 +2,209 @@
 
 # http://forums.hackthissite.org/viewtopic.php?f=37&t=3783
 
-# import asyncore
-# import socket
-from urllib import urlencode
-from collections import deque, namedtuple
-from weakref import WeakValueDictionary
-import urllib2 as url
+from sys import stderr
+from json import loads
 from random import choice
+from urllib import urlencode
+from StringIO import StringIO
+from collections import namedtuple
+from traceback import print_stack
+
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.protocol import Protocol
+from twisted.web.client import Agent, FileBodyProducer
+from twisted.web.http_headers import Headers
 
 
 Event = namedtuple('OmegleEvent', ['id', 'type', 'data'])
 
 
-class Stranger(object):
-    """Class to encapsulate a "stranger" and all associated I/O.
-    """
-    OMEGLE = "http://omegle.com/"
-    START = OMEGLE + "start"
-    EVENTS = OMEGLE + "events"
-    SEND = OMEGLE + "send"
-    TYPING = OMEGLE + "typing"
-    DISCONNECT = OMEGLE + "disconnect"
+class NoStrangerIDError(Exception):
+    def __init__(self, response):
+        self.response = response
 
-    UAGENT = ["Mozilla/5.0 (Windows NT 6.1; WOW64; rv:14.0) Gecko/20100101 Firefox/14.0.1",
+    def __str__(self):
+        return repr({'Code': response.code, 'Phrase': response.phrase})
+
+
+class HTTP(Protocol):
+    def __init__(self, response):
+        self.response = response
+        self.data = ''
+
+    def dataReceived(self, bytes):
+        self.data += bytes
+
+    def connectionLost(self, reason):
+        self.response.callback(self.data)
+
+
+class Stranger(object):
+    """Class to encapsulate I/O to an Omegle user.
+    """
+    _api = {k: 'http://omegle.com/' + k for
+            k in ['start', 'events', 'send', 'typing', 'disconnect']}
+    uagents = ["Mozilla/5.0 (Windows NT 6.1; WOW64; rv:14.0) Gecko/20100101 Firefox/14.0.1",
               "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; FDM; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 1.1.4322)",
               "Mozilla/5.0 (Windows; U; Windows NT 6.1; es-AR; rv:1.9) Gecko/2008051206 Firefox/3.0"]
 
-    def __init__(self, name):
-        self.typing = False  # Indicates whether the stranger sees you as typing
-        self.isconnected = False
-        self.name = name
+    def __init__(self, reactor, troll, protocol):
+        """reactor : twisted reactor instance
+        protocol : class object
+            Class of protocol being used
+        """
+        self.typing = False
+        self.connected = False
+        self.id = None
 
-        self.agent = {'User-Agent': choice(self.UAGENT)}
-        self.id = self.getStrangerID()
-        self.events = self.getEventsPage()
+        self.reactor = reactor
+        self.troll = troll  # exposes troll.feed
+        self.protocol = protocol
+        self.agent = choice(self.uagents)
 
-    def getStrangerID(self):
-        req = url.Request(self.START, '', self.agent)
-        strangerID = url.urlopen(req)
-        # strangerID = url.urlopen(self.START, '')
-        return strangerID.read().replace('"', '')
+        self._getStrangerID()
 
-    def getEventsPage(self):
-        # We build a request object for the current stranger
-        # The request object just polls the ~/events page, specifying an id
-        data = urlencode({'id': self.id})
-        events = url.Request(self.EVENTS, data, self.agent)
-        return events
+    def request(self, api_call, data):
+        agent = Agent(self.reactor)
+        header = {'User-Agent': [self.agent],
+                  'content-type': ['application/x-www-form-urlencoded']}
+        data = urlencode(data)
+        return agent.request(
+                'POST', self._api[api_call], Headers(header),
+                FileBodyProducer(StringIO(data)))
 
-    def checkConnect(self, events):
-        for ev in events:
-            if ev.type == 'connected':
-                self.isconnected = True
-            elif ev.type == 'strangerDisconnected':
-                self.isconnected = False
-        return self.isconnected
+    def getBody(self, response):
+        body = Deferred()
+        response.deliverBody(self.protocol(body))
+        return body
 
-    def toggle_typing(self):
-        data = urlencode({'id': self.id})
-        req = url.Request(self.TYPING, data, self.agent)
-        typing = url.urlopen(req)
-        # typing = url.urlopen(self.TYPING, '&id=' + self.id)
-        typing.close()
-        self.typing = not self.typing
-        return self.typing
+    def _getStrangerID(self):
+        d = self.request('start', '')
+        # lvl 1
+        d.addCallback(self.checkForOkStatus)
+        # lvl 2
+        d.addCallback(self.getBody)
+        # lvl 3
+        d.addCallback(self._assignID)
 
-    def sendMessage(self, msg):
-        # NOTE:  this function takes the msg param because the outbuffer
-        # is the responsibility of the user, not his partner!
-        data = urlencode({'msg': msg, 'id': self.id})
-        req = url.Request(self.SEND, data, self.agent)
-        send = url.urlopen(req)
-        #send = url.urlopen(self.SEND, '&msg=' + msg + '&id=' + self.id)
-        send.close()
+    def checkForOkStatus(self, response):
+        if response.code == 200:
+            return response
+        else:
+            raise NoStrangerIDError(response)  # pass response so it can be examined
 
-    def announceDisconnect(self):
-        data = urlencode({'id': self.id})
-        req = url.Request(self.DISCONNECT, data, self.agent)
-        politeExit = url.urlopen(req)
-        # politeExit = url.urlopen(self.DISCONNECT, '&id=' + self.id)
-        politeExit.close()
-
-    def pullEvents(self):
-        evbuffer = url.urlopen(self.events).read()
-        evbuffer = self.parse_raw_events(evbuffer)
-        self.checkConnect(evbuffer)
-        return evbuffer
+    def _assignID(self, body):
+        """Download the body on successful header fetch
+        from _getStrangerID
+        """
+        self.id = body.replace('"', '')
+        self.troll.feed(Event(self.id, 'idSet', ''))  # ready to go!
 
     def parse_raw_events(self, events):
-        events = [ev for ev in events.split('[') if ev is not '']
-        events = [ev.replace(']', '') for ev in events]
-        events = [ev.replace('"', '').strip() for ev in events]
-        events = [ev[:-1].strip() for ev in events if ev.endswith(',')]
-        events = [ev.split(',') for ev in events]
+        """Produce OmegleEvents from a list of raw events.
+        events : string
+            String of raw events from a POST request to
+            an omegle subpage.
+        """
+        events = loads(events)  # json.loads
+        # Events == None every time... urlencoding probably screwed up
+        if events:
+            parsedEvts = []
+            for ev in (e for e in events):
+                if len(ev) == 1:
+                    data = None
+                else:
+                    data = ev[1]
+                parsedEvts.append(Event(self.id, ev[0].encode('ascii'), data))
 
-        parsedEvts = []
-        for ev in events:
-            if len(ev) > 1:
-                data = ev[1]
-            else:
-                data = None
-            parsedEvts.append(Event(self.id, ev[0], data))
-        return parsedEvts
-
-
-class Viewport(object):
-    """Interface for printing conversation messages to standard output.
-
-    strangers : list
-        Strangers to add to the Viewport instance
-
-    maxlines : int
-        Maximum length of the messages buffer
-
-    callbacks : dict
-        A non-empty dict overrides default event callbacks.
-    """
-    def __init__(self, strangers, maxlines=25, callbackdict={}):
-        self.strangers = WeakValueDictionary(strangers)
-        self.messages = deque(maxlen=maxlines)
-
-        if callbackdict == {}:
-            self.callbacks = {'waiting': self.onWaiting,
-                              'connected': self.onConnect,
-                              'typing': self.onTyping,
-                              'stoppedTyping': self.onStoppedTyping,
-                              'gotMessage': self.gotMessage,
-                              'strangerDisconnected': self.onDisconnect
-                             }
+            return parsedEvts
         else:
-            self.callbacks = callbackdict
+            return Event(self.id, 'tick', None)
 
-        self.waiting = False
+    def getEventsPage(self):
+        d = self.request('events', {'id': self.id})
+        d.addCallback(self.getBody)
+        d.addCallback(self.parse_raw_events)
+        d.addCallback(self.troll.feed)
 
-    def addStranger(self, stranger):
-        self.strangers[stranger.id] = stranger
+    def toggle_typing(self):
+        def flip(resp):
+            self.typing = not self.typing
 
-    def notify(self, eventlist):
-        for ev in eventlist:
+        d = self.request('typing', {'id': self.id})
+        d.addCallback(self.checkForOkStatus)
+        d.addCallback(flip)
+
+    def announceDisconnect(self):
+        d = self.request('disconnect', {'id': self.id})
+
+    def sendMessage(self, msg):
+        d = self.request('send', {'mst': msg, 'id': self.id})
+
+
+class TrollReactor(object):
+    """Base class for all Omegle I/O.
+    """
+    def __init__(self, n=2, refresh=2):
+        self.refresh = refresh
+        self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(n)}
+        self._waiting = len(self._volatile.keys())
+        self.strangers = {}
+        self.callbacks = {'tick': self.on_tick,
+                          'idSet': self.on_idSet,
+                          'waiting': self.on_waiting,
+                          'connected': self.on_connected,
+                          'typing': self.on_typing,
+                          'stoppedTyping': self.on_stoppedTyping,
+                          'gotMessage': self.on_gotMessage,
+                          'strangerDisconnected': self.on_strangerDisconnected}
+
+        # Now we wait to receive idSet events
+
+    def _startTrolling(self):
+        for id_ in self.strangers:
+            self.strangers[id_].getEventsPage()
+
+    def on_tick(self, ev):
+        print ev  # DEBUG
+        reactor.callLater(self.refresh, self.strangers[ev.id].getEventsPage)
+
+    def on_idSet(self, ev):
+        for s in self._volatile:
+            if s.id == ev.id:  # we have the stranger that notified
+                self.strangers[s.id] = s  # move to {id: stranger} dict
+                self._waiting -= 1
+        if self._waiting == 0:
+            self._startTrolling()
+        elif self._waiting < 0:
+            print_stack()
+            stderr.write("ERROR:  too many stranger IDs.")
+            reactor.stop()
+
+    def on_waiting(self, ev):
+        print ev
+
+    def on_connected(self, ev):
+        print ev
+
+    def on_typing(self, ev):
+        print ev
+
+    def on_stoppedTyping(self, ev):
+        print ev
+
+    def on_gotMessage(self, ev):
+        print ev
+
+    def on_strangerDisconnected(self, ev):
+        print ev
+
+    def feed(self, events):
+        """Notify the TrollReactor of an event.
+        """
+        if hasattr(events, '_fields'):
+            events = (events,)  # tuplify
+
+        for ev in events:
             self.callbacks[ev.type](ev)
-
-    def onWaiting(self, ev):
-        if not self.waiting:
-            print "Waiting..."
-            self.waiting = True
-
-    def onConnect(self, ev):
-        if self.waiting:
-            self.waiting = False  # reset waiting flag so that we get proper wait notification
-        print self.strangers[ev.id].name, "connected!"
-
-    def onTyping(self, ev):
-        pass  # DEBUG - Keep typing events from raising exceptions
-
-    def onStoppedTyping(self, ev):
-        pass  # DEBUG - Keep stoppedTyping events from raising execptions
-
-    def gotMessage(self, ev):
-        print self.strangers[ev.id].name + ":  ", ev.data
-
-    def onDisconnect(self, ev):
-        print self.strangers[ev.id].name, "disconnected"
-
-
-class MiddleMan(object):
-    """Class to implement a man-in-the-middle attack on two
-    Omegle users.
-    """
-    def __init__(self):
-        self.getStrangers()  # set self.strangers
-        self.view = Viewport(self.strangers)
-        self.go()
-
-    def getStrangers(self):
-        strangers = [Stranger('Stranger_' + str(i + 1)) for i in xrange(2)]
-        self.strangers = {s.id: s for s in strangers}
-
-    def pumpEvents(self):
-        # Thread this...
-        # You want to fetch events for each stranger seperately
-        eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
-        stranger_IDs = [self.strangers[s].id for s in self.strangers]
-        for id_idx, evts in enumerate(eventPolls):
-            self.view.notify(evts)
-            self.notify(evts, stranger_IDs[id_idx])
-
-    def propagateMessage(self, msg_ev, stranger_id):
-        targets = [self.strangers[s] for s in self.strangers if self.strangers[s].id != stranger_id]
-        for stranger in targets:
-            for ev in msg_ev:
-                stranger.sendMessage(ev.data)
-
-    def notify(self, evts, stranger_id):
-        for ev in evts:
-            if ev.type == "gotMessage":
-                self.propagateMessage(ev, stranger_id)
-            elif ev.type == "strangerDisconnected":
-                self.strangers.pop(ev.id)
-                # politely exit
-                for key in self.strangers:
-                    self.strangers[key].announceDisconnect()
-                self.strangers.clear()  # empty the dict
-
-                # start over
-                self.getStrangers()
-
-    def go(self):
-        while True:
-            self.pumpEvents()
-
-
-class ChatRoom(object):  # consider inheriting from viewport?
-    """Class to implement an Omegle chat room between n number
-    of users.
-
-    Handles notification of users and accepts special commands
-    and nickname setting.
-    """
-    pass
-
-
-class Ominer(object):
-    """Initiates n number of conversations in separate threads and
-    logs them until a stranger disconnects.
-    """
-    pass
-
-
-class TestEvents(MiddleMan):
-    def pumpEvents(self):
-        eventPolls = [self.strangers[s].pullEvents() for s in self.strangers]
-        stranger_IDs = [self.strangers[s].id for s in self.strangers]
-        for id_idx, evts in enumerate(eventPolls):
-            print evts
-            self.notify(evts)
-            messages = [e for e in evts if e.type == "gotMessage"]
-            if messages != []:
-                self.propagateMessages(stranger_IDs[id_idx], messages)
