@@ -293,7 +293,6 @@ class MiddleMan(TrollReactor):
         self.strangers[ev.id].toggle_typing()
 
     def on_strangerDisconnected(self, ev):
-        print "ON_STRANGER_DISCONNECTED"
         active = (s for s in self.strangers if s != ev.id)
         self.multicastDisconnect(active)  # announce disconnect to everyone
         self.strangers.clear()  # disconnect from everyone (clear the dict)
