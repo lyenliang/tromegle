@@ -217,13 +217,13 @@ class Stranger(object):
         d = self.request('disconnect', {'id': self.id})
 
     def sendMessage(self, msg):
-        d = self.request('send', {'mst': msg, 'id': self.id})
+        d = self.request('send', {'msg': msg, 'id': self.id})
 
 
 class TrollReactor(CBDictInterface):
     """Base class for all Omegle I/O.
     """
-    def __init__(self, n=2, refresh=2):
+    def __init__(self, n=2, refresh=1.5):
         super(TrollReactor, self).__init__()
         self._n = n
         self.refresh = refresh
