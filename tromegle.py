@@ -94,7 +94,7 @@ class Viewport(CBDictInterface):
     def on_strangerDisconnected(self, ev):
         print self.strangers[ev.id], "has disconnected."
         print
-        self.strangers.pop(ev.id)
+        self.strangers.clear()
 
     def on_gotMessage(self, ev):
         print self.strangers[ev.id] + ": ", ev.data
@@ -233,12 +233,14 @@ class TrollReactor(CBDictInterface):
         self._waiting = len(self._volatile.keys())
         self.strangers = {}
 
-    def politeDisconnect(self, id_):
-        self.strangers[id_].announceDisconnect()
+    def multicastDisconnect(self, ids):
+        """Announce disconnect for a group of strangers.
 
-        def do_pop(id_):
-            self.strangers.pop(id_)
-        reactor.callLater(0, do_pop, id_)
+        ids : iterable
+            id strings of strangers from whom to politely disconnect.
+        """
+        for i in ids:
+            self.strangers[i].announceDisconnect()
 
     def pumpEvents(self):
         for id_ in self.strangers:
@@ -291,9 +293,10 @@ class MiddleMan(TrollReactor):
         self.strangers[ev.id].toggle_typing()
 
     def on_strangerDisconnected(self, ev):
-        for id_ in self.strangers:
-            self.politeDisconnect(id_)
-
+        print "ON_STRANGER_DISCONNECTED"
+        active = (s for s in self.strangers if s != ev.id)
+        self.multicastDisconnect(active)  # announce disconnect to everyone
+        self.strangers.clear()  # disconnect from everyone (clear the dict)
         self.initializeStrangers()
 
     def on_gotMessage(self, ev):
