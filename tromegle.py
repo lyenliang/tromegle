@@ -7,11 +7,12 @@ from json import loads
 from random import choice
 from urllib import urlencode
 from StringIO import StringIO
-from collections import namedtuple
 from traceback import print_stack
+from collections import namedtuple
+from weakref import WeakValueDictionary
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
@@ -26,6 +27,77 @@ class NoStrangerIDError(Exception):
 
     def __str__(self):
         return repr({'Code': response.code, 'Phrase': response.phrase})
+
+
+class CBDictInterface(object):
+    """Base class for all classes responding to OmegleEvents.
+    """
+    def __init__(self, callbackdict=None):
+        if not callbackdict:
+            self.callbacks = {'idSet': self.on_idSet,
+                              'waiting': self.on_waiting,
+                              'connected': self.on_connected,
+                              'typing': self.on_typing,
+                              'stoppedTyping': self.on_stoppedTyping,
+                              'gotMessage': self.on_gotMessage,
+                              'strangerDisconnected': self.on_strangerDisconnected}
+        else:
+            self.callbacks = callbackdict
+
+    def on_idSet(self, ev):
+        pass
+
+    def on_waiting(self, ev):
+        pass
+
+    def on_connected(self, ev):
+        pass
+
+    def on_typing(self, ev):
+        pass
+
+    def on_stoppedTyping(self, ev):
+        pass
+
+    def on_gotMessage(self, ev):
+        pass
+
+    def on_strangerDisconnected(self, ev):
+        pass
+
+    def notify(self, ev):
+        self.callbacks[ev.type](ev)
+
+
+class Viewport(CBDictInterface):
+    """Interfae for printing conversations to standard output.
+    """
+    # container for viewport messages.  'orig' parameter contains
+    #   untransmogrified message, or NoneType if the message was not altered.
+    Message = namedtuple('ViewportMessage', ['id', 'msg', 'orig'])
+
+    def __init__(self, callbackdict=None):
+        super(Viewport, self).__init__(callbackdict)
+        self.strangers = {}
+
+    def on_idSet(self, ev):
+        tag = 'Stranger_' + str(len(self.strangers.keys() + 1))
+        self.strangers[ev.id] = tag
+        print tag, "identified..."
+
+    def on_waiting(self, ev):
+        print "Waiting to connect to", self.strangers[ev.id]
+
+    def on_connected(self, ev):
+        print "Connected to", self.strangers[ev.id]
+
+    def on_strangerDisconnected(self, ev):
+        print self.strangers[ev.id], "has disconnected."
+        print
+        self.strangers.pop(ev.id)
+
+    def on_gotMessage(self, ev):
+        print self.strangers[ev.id] + ": ", ev.data
 
 
 class HTTP(Protocol):
@@ -147,10 +219,12 @@ class TrollReactor(object):
     """Base class for all Omegle I/O.
     """
     def __init__(self, n=2, refresh=2):
+        self._n = n
         self.refresh = refresh
-        self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(n)}
-        self._waiting = len(self._volatile.keys())
-        self.strangers = {}
+        self.initializeStrangers()
+
+        listeners = WeakValueDictionary()
+
         self.callbacks = {'idSet': self.on_idSet,
                           'waiting': self.on_waiting,
                           'connected': self.on_connected,
@@ -160,6 +234,15 @@ class TrollReactor(object):
                           'strangerDisconnected': self.on_strangerDisconnected}
 
         # Now we wait to receive idSet events
+
+    def initializeStrangers(self):
+        self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(self._n)}
+        self._waiting = len(self._volatile.keys())
+        self.strangers = {}
+
+    def politeDisconnect(self, id_):
+        self.strangers[id_].announceDisconnect()
+        self.strangers.pop(id_)
 
     def pumpEvents(self):
         for id_ in self.strangers:
@@ -179,22 +262,28 @@ class TrollReactor(object):
             reactor.stop()
 
     def on_waiting(self, ev):
-        print ev
+        pass
 
     def on_connected(self, ev):
-        print ev
+        pass
 
     def on_typing(self, ev):
-        print ev
+        pass
 
     def on_stoppedTyping(self, ev):
-        print ev
+        pass
 
     def on_gotMessage(self, ev):
-        print ev
+        pass
 
     def on_strangerDisconnected(self, ev):
-        print ev
+        pass
+
+    def addListener(self, listener):
+        self.listeners[listener] = listener  # weak-value dict
+
+    def removeListener(self, listener):
+        self.listeners.pop(listener)
 
     def feed(self, events):
         """Notify the TrollReactor of an event.
@@ -203,4 +292,31 @@ class TrollReactor(object):
             events = (events,)  # convert to tuple
 
         for ev in events:
+            for listener in self.listeners:
+                listener.notify(ev)
+
             self.callbacks[ev.type](ev)
+
+
+class MiddleMan(TrollReactor):
+    """Implementation of man-in-the-middle attack on two omegle users.
+    """
+    def __init__(self):
+        super(MiddleMan, self).__init__()
+
+        self.addListener(Viewport())
+
+        self.on_stoppedTyping = self.on_typing
+
+    def on_typing(self, ev):
+        self.strangers[ev.id].toggle_typing()
+
+    def on_strangerDisconnected(self, ev):
+        for id_ in self.strangers:
+            self.politeDisconnect(id_)
+
+        self.initializeStrangers()
+
+    def on_gotMessage(self, ev):
+        for nonspeaker in (nspkr for nspkr in self.strangers if nspkr != ev.id):
+            nonspeaker.sendMessage(ev.data)

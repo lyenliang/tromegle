@@ -2,7 +2,7 @@
 
 from tromegle import *
 
-t = TrollReactor()
+m = MiddleMan()
 
 if __name__ == '__main__':
     print "DEBUG STARTING NOW"
