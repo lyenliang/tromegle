@@ -336,6 +336,14 @@ class Transmogrifier(object):
             pass it as:
                         ((arg1, arg2, arg3),)
     """
+    # Scroll can be used to merge new kwargs in the spell n + 1 based
+    #   on logic in spell n.  **Experimental**  Use with caution.
+    # Use:
+    #   Scroll.args should contain the arguments you wish to return.
+    #   Original args will be replaced!  Scroll.kw_merge should contain
+    #   a dict of kwargs to be merged.
+    Scroll = namedtuple('SpellScroll', ['args', 'kw_merge'])
+
     def __init__(self):
         self._spell = []
 
@@ -352,19 +360,25 @@ class Transmogrifier(object):
 
         self._spell.append((fn, args, kwargs))
 
+    def _mergeKeyWordArgs(self, passed, assigned):
+        return dict(assigned.items() + passed.items())
+
     def __call__(self, *args, **kwargs):
         for i, spell in enumerate(self._spell):
+            fn, ar, kw = spell
+            if isinstance(ar, self.Scroll):  # extract new kwargs
+                fn, ar, kw = ar.fn, ar.args, self._mergeKeyWordArgs(kw, ar.kw_merge)
+
             if i == 0:
                 if args == tuple():
-                    args = spell[1]
-                if spell[2] != {}:
-                    kwargs = dict(spell[2].items() + kwargs.items())  # merge, replacing collisions with item in kwargs
-
-                fn = spell[0]
+                    args = ar
+                if kw != {}:
+                    kwargs = self._mergeKeyWordArgs(kwargs, kw)
             else:
-                fn, _, kwargs = spell
+                kwargs = kw
 
             args = fn(*args, **kwargs)
             if (i + 1) != len(self._spell) and not isinstance(args, tuple):
                 args = (args,)
+
         return args
