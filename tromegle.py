@@ -81,7 +81,7 @@ class Viewport(CBDictInterface):
         self.strangers = {}
 
     def on_idSet(self, ev):
-        tag = 'Stranger_' + str(len(self.strangers.keys() + 1))
+        tag = 'Stranger_' + str(len(self.strangers.keys()) + 1)
         self.strangers[ev.id] = tag
         print tag, "identified..."
 
@@ -131,7 +131,7 @@ class Stranger(object):
         self.id = None
 
         self.reactor = reactor
-        self.troll = troll  # exposes troll.feed
+        self.troll = troll  # exposes troll.notify
         self.protocol = protocol
         self.agent = choice(self.uagents)
 
@@ -172,7 +172,7 @@ class Stranger(object):
         """
         self.id = body.replace('"', '')
         ev = Event(self.id, 'idSet', '')
-        self.troll.feed(ev)  # ready to go!
+        self.troll.notify(ev)  # ready to go!
 
     def parse_raw_events(self, events):
         """Produce OmegleEvents from a list of raw events.
@@ -198,7 +198,7 @@ class Stranger(object):
         d = self.request('events', {'id': self.id})
         d.addCallback(self.getBody)
         d.addCallback(self.parse_raw_events)
-        d.addCallback(self.troll.feed)
+        d.addCallback(self.troll.notify)
 
     def toggle_typing(self):
         def flip(resp):
@@ -215,23 +215,16 @@ class Stranger(object):
         d = self.request('send', {'mst': msg, 'id': self.id})
 
 
-class TrollReactor(object):
+class TrollReactor(CBDictInterface):
     """Base class for all Omegle I/O.
     """
     def __init__(self, n=2, refresh=2):
+        super(TrollReactor, self).__init__()
         self._n = n
         self.refresh = refresh
         self.initializeStrangers()
 
-        listeners = WeakValueDictionary()
-
-        self.callbacks = {'idSet': self.on_idSet,
-                          'waiting': self.on_waiting,
-                          'connected': self.on_connected,
-                          'typing': self.on_typing,
-                          'stoppedTyping': self.on_stoppedTyping,
-                          'gotMessage': self.on_gotMessage,
-                          'strangerDisconnected': self.on_strangerDisconnected}
+        self.listeners = WeakValueDictionary()
 
         # Now we wait to receive idSet events
 
@@ -242,12 +235,16 @@ class TrollReactor(object):
 
     def politeDisconnect(self, id_):
         self.strangers[id_].announceDisconnect()
-        self.strangers.pop(id_)
+
+        def do_pop(id_):
+            self.strangers.pop(id_)
+        reactor.callLater(0, do_pop, id_)
 
     def pumpEvents(self):
         for id_ in self.strangers:
             self.strangers[id_].getEventsPage()
-            reactor.callLater(self.refresh, self.pumpEvents)
+
+        reactor.callLater(self.refresh, self.pumpEvents)
 
     def on_idSet(self, ev):
         for s in self._volatile:
@@ -261,31 +258,13 @@ class TrollReactor(object):
             stderr.write("ERROR:  too many stranger IDs.")
             reactor.stop()
 
-    def on_waiting(self, ev):
-        pass
-
-    def on_connected(self, ev):
-        pass
-
-    def on_typing(self, ev):
-        pass
-
-    def on_stoppedTyping(self, ev):
-        pass
-
-    def on_gotMessage(self, ev):
-        pass
-
-    def on_strangerDisconnected(self, ev):
-        pass
-
     def addListener(self, listener):
         self.listeners[listener] = listener  # weak-value dict
 
     def removeListener(self, listener):
         self.listeners.pop(listener)
 
-    def feed(self, events):
+    def notify(self, events):
         """Notify the TrollReactor of an event.
         """
         if hasattr(events, '_fields'):
@@ -318,5 +297,5 @@ class MiddleMan(TrollReactor):
         self.initializeStrangers()
 
     def on_gotMessage(self, ev):
-        for nonspeaker in (nspkr for nspkr in self.strangers if nspkr != ev.id):
-            nonspeaker.sendMessage(ev.data)
+        for nonspeaker_id in (nspkr for nspkr in self.strangers if nspkr != ev.id):
+            self.strangers[nonspeaker_id].sendMessage(ev.data)
