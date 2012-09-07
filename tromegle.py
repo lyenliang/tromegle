@@ -8,7 +8,7 @@ from random import choice
 from urllib import urlencode
 from StringIO import StringIO
 from traceback import print_stack
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from weakref import WeakValueDictionary
 
 from twisted.internet import reactor
@@ -34,15 +34,16 @@ class CBDictInterface(object):
     """
     def __init__(self, callbackdict=None):
         if not callbackdict:
-            self.callbacks = {'idSet': self.on_idSet,
-                              'waiting': self.on_waiting,
-                              'connected': self.on_connected,
-                              'typing': self.on_typing,
-                              'stoppedTyping': self.on_stoppedTyping,
-                              'gotMessage': self.on_gotMessage,
-                              'strangerDisconnected': self.on_strangerDisconnected}
-        else:
-            self.callbacks = callbackdict
+            callbackdict = {'idSet': self.on_idSet,
+                            'waiting': self.on_waiting,
+                            'connected': self.on_connected,
+                            'typing': self.on_typing,
+                            'stoppedTyping': self.on_stoppedTyping,
+                            'gotMessage': self.on_gotMessage,
+                            'strangerDisconnected': self.on_strangerDisconnected}
+
+        self.callbacks = defaultdict(lambda: lambda ev: None,
+                                     callbackdict)
 
     def on_idSet(self, ev):
         pass
@@ -230,6 +231,7 @@ class TrollReactor(CBDictInterface):
         self.initializeStrangers()
 
         self.listeners = WeakValueDictionary()
+        self.transmogrifiers = []
 
         # Now we wait to receive idSet events
 
@@ -284,6 +286,12 @@ class TrollReactor(CBDictInterface):
             self.callbacks[ev.type](ev)
 
 
+class Client(TrollReactor):
+    """Extensible client for omegle.com.
+    """
+    pass
+
+
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
@@ -298,7 +306,8 @@ class MiddleMan(TrollReactor):
         self.strangers[ev.id].toggle_typing()
 
     def on_strangerDisconnected(self, ev):
-        active = (s for s in self.strangers if s != ev.id)
+        print "Restarting..."
+        active = (i for i in self.strangers if i != ev.id)
         self.multicastDisconnect(active)  # announce disconnect to everyone
         self.strangers.clear()  # disconnect from everyone (clear the dict)
         self.initializeStrangers()
@@ -306,3 +315,56 @@ class MiddleMan(TrollReactor):
     def on_gotMessage(self, ev):
         for nonspeaker_id in (nspkr for nspkr in self.strangers if nspkr != ev.id):
             self.strangers[nonspeaker_id].sendMessage(ev.data)
+
+
+class OMiner(MiddleMan):
+    """Data minig class
+    """
+
+
+class Transmogrifier(object):
+    """Class to handle chaining of event processing functions, or "spells".
+    Spells are guaranteed to be executed in the order in which they are added,
+    using the cumulative result of the preceeding spell.
+
+    A call to an initialized Transmogrifier, t, results in the chain of spells
+    being executed.  The Transmogrifier instance will return the return value
+    of the last spell.
+
+    NOTE:  Spell outputs consiting of tuples or lists are assumed by the next
+            spell to be packed arguments!  To pass a tuple as a single argument,
+            pass it as:
+                        ((arg1, arg2, arg3),)
+    """
+    def __init__(self):
+        self._spell = []
+
+    def addSpell(self, fn, *args, **kwargs):
+        """Add spell to the back of the transmogrification chain.
+
+        fn : function
+            Spell function (function object or method)
+        *args
+        **kwargs
+        """
+        if args != tuple():
+            raise Exception('Only the first spell accepts non-keyword arguments.')
+
+        self._spell.append((fn, args, kwargs))
+
+    def __call__(self, *args, **kwargs):
+        for i, spell in enumerate(self._spell):
+            if i == 0:
+                if args == tuple():
+                    args = spell[1]
+                if spell[2] != {}:
+                    kwargs = dict(spell[2].items() + kwargs.items())  # merge, replacing collisions with item in kwargs
+
+                fn = spell[0]
+            else:
+                fn, _, kwargs = spell
+
+            args = fn(*args, **kwargs)
+            if (i + 1) != len(self._spell) and not isinstance(args, tuple):
+                args = (args,)
+        return args
