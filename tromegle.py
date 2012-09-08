@@ -285,7 +285,7 @@ class TrollReactor(CBDictInterface):
 
     def _processEventQueue(self):
         while len(self.eventQueue):
-            ev = self.eventQueue.popLeft()
+            ev = self.eventQueue.popleft()
             for listener in self.listeners:
                 listener.notify(ev)
 
