@@ -8,7 +8,7 @@ from random import choice
 from urllib import urlencode
 from StringIO import StringIO
 from traceback import print_stack
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, deque
 from weakref import WeakValueDictionary
 
 from twisted.internet import reactor
@@ -27,6 +27,15 @@ class NoStrangerIDError(Exception):
 
     def __str__(self):
         return repr({'Code': response.code, 'Phrase': response.phrase})
+
+
+class Transmogrifier(object):
+    def __init__(self, evQueue):
+        self.evQueue = evQueue
+
+    def cast(self, events):
+        for ev in events:
+            self.evQueue.append(ev)
 
 
 class CBDictInterface(object):
@@ -178,7 +187,7 @@ class Stranger(object):
         """
         self.id = body.replace('"', '')
         ev = Event(self.id, 'idSet', '')
-        self.troll.notify(ev)  # ready to go!
+        self.troll.feed(ev)  # ready to go!
 
     def parse_raw_events(self, events):
         """Produce OmegleEvents from a list of raw events.
@@ -204,7 +213,7 @@ class Stranger(object):
         d = self.request('events', {'id': self.id})
         d.addCallback(self.getBody)
         d.addCallback(self.parse_raw_events)
-        d.addCallback(self.troll.notify)
+        d.addCallback(self.troll.feed)
 
     def toggle_typing(self):
         def flip(resp):
@@ -231,7 +240,8 @@ class TrollReactor(CBDictInterface):
         self.initializeStrangers()
 
         self.listeners = WeakValueDictionary()
-        self.transmogrifiers = []
+        self.eventQueue = deque()
+        self.transmogrifiers = Transmogrifier(self.eventQueue)
 
         # Now we wait to receive idSet events
 
@@ -273,17 +283,22 @@ class TrollReactor(CBDictInterface):
     def removeListener(self, listener):
         self.listeners.pop(listener)
 
-    def notify(self, events):
+    def _processEventQueue(self):
+        while len(self.eventQueue):
+            ev = self.eventQueue.popLeft()
+            for listener in self.listeners:
+                listener.notify(ev)
+
+            self.notify(ev)
+
+    def feed(self, events):
         """Notify the TrollReactor of an event.
         """
         if hasattr(events, '_fields'):
             events = (events,)  # convert to tuple
 
-        for ev in events:
-            for listener in self.listeners:
-                listener.notify(ev)
-
-            self.callbacks[ev.type](ev)
+        self.transmogrifiers.cast(events)
+        self._processEventQueue()
 
 
 class Client(TrollReactor):
@@ -320,65 +335,3 @@ class MiddleMan(TrollReactor):
 class OMiner(MiddleMan):
     """Data minig class
     """
-
-
-class Transmogrifier(object):
-    """Class to handle chaining of event processing functions, or "spells".
-    Spells are guaranteed to be executed in the order in which they are added,
-    using the cumulative result of the preceeding spell.
-
-    A call to an initialized Transmogrifier, t, results in the chain of spells
-    being executed.  The Transmogrifier instance will return the return value
-    of the last spell.
-
-    NOTE:  Spell outputs consiting of tuples or lists are assumed by the next
-            spell to be packed arguments!  To pass a tuple as a single argument,
-            pass it as:
-                        ((arg1, arg2, arg3),)
-    """
-    # Scroll can be used to merge new kwargs in the spell n + 1 based
-    #   on logic in spell n.  **Experimental**  Use with caution.
-    # Use:
-    #   Scroll.args should contain the arguments you wish to return.
-    #   Original args will be replaced!  Scroll.kw_merge should contain
-    #   a dict of kwargs to be merged.
-    Scroll = namedtuple('SpellScroll', ['args', 'kw_merge'])
-
-    def __init__(self):
-        self._spell = []
-
-    def addSpell(self, fn, *args, **kwargs):
-        """Add spell to the back of the transmogrification chain.
-
-        fn : function
-            Spell function (function object or method)
-        *args
-        **kwargs
-        """
-        if args != tuple():
-            raise Exception('Only the first spell accepts non-keyword arguments.')
-
-        self._spell.append((fn, args, kwargs))
-
-    def _mergeKeyWordArgs(self, passed, assigned):
-        return dict(assigned.items() + passed.items())
-
-    def __call__(self, *args, **kwargs):
-        for i, spell in enumerate(self._spell):
-            fn, ar, kw = spell
-            if isinstance(ar, self.Scroll):  # extract new kwargs
-                fn, ar, kw = ar.fn, ar.args, self._mergeKeyWordArgs(kw, ar.kw_merge)
-
-            if i == 0:
-                if args == tuple():
-                    args = ar
-                if kw != {}:
-                    kwargs = self._mergeKeyWordArgs(kwargs, kw)
-            else:
-                kwargs = kw
-
-            args = fn(*args, **kwargs)
-            if (i + 1) != len(self._spell) and not isinstance(args, tuple):
-                args = (args,)
-
-        return args
