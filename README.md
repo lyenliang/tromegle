@@ -1,4 +1,2 @@
-tromegle
+Tromegle:  Troll Strangers!
 ========
-
-troll strangers!
