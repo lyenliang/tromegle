@@ -335,3 +335,8 @@ class MiddleMan(TrollReactor):
 class OMiner(MiddleMan):
     """Data minig class
     """
+
+# Demonstration
+if __name__ == '__main__':
+    m = MiddleMan()
+    reactor.run()
