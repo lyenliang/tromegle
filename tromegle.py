@@ -53,6 +53,7 @@ class CBDictInterface(object):
 
         self.callbacks = defaultdict(lambda: lambda ev: None,
                                      callbackdict)
+        # self.callbacks = callbackdict
 
     def on_idSet(self, ev):
         pass
