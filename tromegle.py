@@ -2,11 +2,15 @@
 
 # http://forums.hackthissite.org/viewtopic.php?f=37&t=3783
 
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
+
 from sys import stderr
 from json import loads
 from random import choice
 from urllib import urlencode
-from StringIO import StringIO
 from traceback import print_stack
 from collections import namedtuple, defaultdict, deque
 from weakref import WeakValueDictionary
