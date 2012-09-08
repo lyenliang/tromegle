@@ -23,6 +23,8 @@ from twisted.web.http_headers import Headers
 
 
 Event = namedtuple('OmegleEvent', ['id', 'type', 'data'])
+startTrolling = lambda: reactor.run()
+stopTrolling = lambda: reactor.stop()
 
 
 class NoStrangerIDError(Exception):
@@ -34,8 +36,8 @@ class NoStrangerIDError(Exception):
 
 
 class Transmogrifier(object):
-    def __init__(self, evQueue):
-        self.evQueue = evQueue
+    def __init__(self):
+        self.evQueue = None
 
     def cast(self, events):
         for ev in events:
@@ -238,15 +240,17 @@ class Stranger(object):
 class TrollReactor(CBDictInterface):
     """Base class for all Omegle I/O.
     """
-    def __init__(self, n=2, refresh=1.5):
+    def __init__(self, transmog=Transmogrifier(), n=2, refresh=1.5):
         super(TrollReactor, self).__init__()
         self._n = n
         self.refresh = refresh
         self.initializeStrangers()
 
         self.listeners = WeakValueDictionary()
+
+        self.transmogrifier = transmog
         self.eventQueue = deque()
-        self.transmogrifiers = Transmogrifier(self.eventQueue)
+        self.transmogrifier.evQueue = self.eventQueue
 
         # Now we wait to receive idSet events
 
@@ -302,7 +306,7 @@ class TrollReactor(CBDictInterface):
         if hasattr(events, '_fields'):
             events = (events,)  # convert to tuple
 
-        self.transmogrifiers.cast(events)
+        self.transmogrifier.cast(events)
         self._processEventQueue()
 
 
@@ -315,8 +319,8 @@ class Client(TrollReactor):
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
-    def __init__(self):
-        super(MiddleMan, self).__init__()
+    def __init__(self, transmog=Transmogrifier()):
+        super(MiddleMan, self).__init__(transmog)
 
         self.addListener(Viewport())
 
@@ -344,4 +348,4 @@ class OMiner(MiddleMan):
 # Demonstration
 if __name__ == '__main__':
     m = MiddleMan()
-    reactor.run()
+    startTrolling()
