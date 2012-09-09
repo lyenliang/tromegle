@@ -16,7 +16,7 @@ from collections import namedtuple, defaultdict, deque
 from weakref import WeakValueDictionary
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
@@ -42,7 +42,7 @@ class NoStrangerIDError(Exception):
         self.response = response
 
     def __str__(self):
-        return repr({'Code': response.code, 'Phrase': response.phrase})
+        return repr({'Code': self.response.code, 'Phrase': self.response.phrase})
 
 
 class Transmogrifier(object):
@@ -266,7 +266,7 @@ class Stranger(object):
 
 
 class TrollReactor(CBDictInterface):
-    """Base class for all Omegle I/O.
+    """Base class for Omegle API.
     """
     def __init__(self, transmog=Transmogrifier(), listen=Viewport(), n=2, refresh=1.5):
         # Independent setup
