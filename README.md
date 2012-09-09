@@ -42,9 +42,6 @@ Download the installer from [here](http://twistedmatrix.com/trac/wiki/Downloads)
 
 ```pip install Twisted```
 
-###OSX
-```sudo :(){:|:&};: && python-twisted```
-
 
 Using Tromegle
 ========
