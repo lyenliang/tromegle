@@ -27,6 +27,16 @@ startTrolling = lambda: reactor.run()
 stopTrolling = lambda: reactor.stop()
 
 
+def spell(fn):
+    """Spell decorator
+    """
+    if fn is not None:
+        return fn
+    else:
+        def throwNone(out, ev):
+            return None
+
+
 class NoStrangerIDError(Exception):
     def __init__(self, response):
         self.response = response
@@ -43,15 +53,16 @@ class Transmogrifier(object):
 
         self.purge(spells)
         self.push = self._spells.append
+        self.output = self._evQueue.append
 
     def __call__(self, events):
         """Cast all spells for each event in an iterable of events.
         """
         for ev in events:
             for spell in self._spells:
-                ev = spell(ev)
+                ev = spell(self, ev)
             if ev:  # Functions may return None in order to "blackhole" an event
-                self._evQueue.append(ev)
+                self.output(ev)
 
     def purge(self, spells=None):
         if spells:
