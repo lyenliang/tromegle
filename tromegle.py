@@ -36,12 +36,26 @@ class NoStrangerIDError(Exception):
 
 
 class Transmogrifier(object):
-    def __init__(self):
-        self.evQueue = None
+    def __init__(self, evQueue, spells=None):
+        self._evQueue = evQueue
 
-    def cast(self, events):
+        self.purge(spells)
+        self.push = self._spells.append
+
+    def __call__(self, events):
+        """Cast all spells for each event in an iterable of events.
+        """
         for ev in events:
-            self.evQueue.append(ev)
+            for spell in self._spells:
+                ev = spell(ev)
+            if ev:  # Functions may return None in order to "blackhole" an event
+                self._evQueue.append(ev)
+
+    def purge(self, spells=None):
+        if spells:
+            self._spells = [s for s in spells]
+        else:
+            self._spells = []
 
 
 class CBDictInterface(object):
@@ -240,19 +254,18 @@ class Stranger(object):
 class TrollReactor(CBDictInterface):
     """Base class for all Omegle I/O.
     """
-    def __init__(self, transmog=Transmogrifier(), n=2, refresh=1.5):
+    def __init__(self, transmog=Transmogrifier, listen=Viewport(), n=2, refresh=1.5):
+        # Independent setup
         super(TrollReactor, self).__init__()
+        self.listeners = WeakValueDictionary()
+        # Argument assignment
+        self.eventQueue = deque()
+        self.castTransmogrifier(transmog)
+        self.addListeners(listen)
         self._n = n
         self.refresh = refresh
-        self.initializeStrangers()
 
-        self.listeners = WeakValueDictionary()
-
-        self.transmogrifier = transmog
-        self.eventQueue = deque()
-        self.transmogrifier.evQueue = self.eventQueue
-
-        # Now we wait to receive idSet events
+        self.initializeStrangers()  # Now we wait to receive idSet events
 
     def initializeStrangers(self):
         self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(self._n)}
@@ -286,8 +299,16 @@ class TrollReactor(CBDictInterface):
             stderr.write("ERROR:  too many stranger IDs.")
             reactor.stop()
 
-    def addListener(self, listener):
-        self.listeners[listener] = listener  # weak-value dict
+    def addListeners(self, listeners):
+        """Add a listener or group of listeners to the reactor.
+
+        listeners : CBDictInterface instance or iterable
+        """
+        if not hasattr(listeners, '__iter__'):
+            listeners = (listeners,)
+
+        for listen in listeners:
+            self.listeners[listen] = listen  # weak-value dict
 
     def removeListener(self, listener):
         self.listeners.pop(listener)
@@ -300,30 +321,36 @@ class TrollReactor(CBDictInterface):
 
             self.notify(ev)
 
+    def castTransmogrifier(self, transmog):
+        """Initialize a new transmogrifier and use it to replace the old one.
+
+        transmog : class
+            A Transmogrifier class object.
+        """
+        self.transmogrifier = transmog(self.eventQueue)
+
     def feed(self, events):
         """Notify the TrollReactor of an event.
         """
         if hasattr(events, '_fields'):
             events = (events,)  # convert to tuple
 
-        self.transmogrifier.cast(events)
+        self.transmogrifier(events)
         self._processEventQueue()
 
 
 class Client(TrollReactor):
     """Extensible client for omegle.com.
     """
-    pass
+    def __init__(self, listen=Viewport()):
+        super(Client, self).__init__(listen=listen, n=1)
 
 
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
-    def __init__(self, transmog=Transmogrifier()):
-        super(MiddleMan, self).__init__(transmog)
-
-        self.addListener(Viewport())
-
+    def __init__(self, listen=Viewport()):
+        super(MiddleMan, self).__init__(listen=listen)
         self.on_stoppedTyping = self.on_typing
 
     def on_typing(self, ev):
@@ -341,7 +368,7 @@ class MiddleMan(TrollReactor):
             self.strangers[nonspeaker_id].sendMessage(ev.data)
 
 
-class OMiner(MiddleMan):
+class OMiner(object):
     """Data minig class
     """
 
