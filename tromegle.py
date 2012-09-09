@@ -37,6 +37,8 @@ class NoStrangerIDError(Exception):
 
 class Transmogrifier(object):
     def __init__(self, evQueue, spells=None):
+        if not isinstance(evQueue, deque):
+            raise TypeError('Event queue must be a deque.')
         self._evQueue = evQueue
 
         self.purge(spells)
