@@ -46,14 +46,9 @@ class NoStrangerIDError(Exception):
 
 
 class Transmogrifier(object):
-    def __init__(self, evQueue, spells=None):
-        if not isinstance(evQueue, deque):
-            raise TypeError('Event queue must be a deque.')
-        self._evQueue = evQueue
-
+    def __init__(self, spells=None):
         self.purge(spells)
         self.push = self._spells.append
-        self.output = self._evQueue.append
 
     def __call__(self, events):
         """Cast all spells for each event in an iterable of events.
@@ -69,6 +64,12 @@ class Transmogrifier(object):
             self._spells = [s for s in spells]
         else:
             self._spells = []
+
+    def connect(self, eventQueue):
+        if not isinstance(eventQueue, deque):
+            raise TypeError('Event queue must be a deque.')
+        self._evQueue = eventQueue
+        self.output = self._evQueue.append
 
 
 class CBDictInterface(object):
@@ -267,13 +268,14 @@ class Stranger(object):
 class TrollReactor(CBDictInterface):
     """Base class for all Omegle I/O.
     """
-    def __init__(self, transmog=Transmogrifier, listen=Viewport(), n=2, refresh=1.5):
+    def __init__(self, transmog=Transmogrifier(), listen=Viewport(), n=2, refresh=1.5):
         # Independent setup
         super(TrollReactor, self).__init__()
         self.listeners = WeakValueDictionary()
         # Argument assignment
         self.eventQueue = deque()
-        self.castTransmogrifier(transmog)
+        self.transmogrifier = transmog
+        self.transmogrifier.connect(self.eventQueue)
         self.addListeners(listen)
         self._n = n
         self.refresh = refresh
@@ -334,14 +336,6 @@ class TrollReactor(CBDictInterface):
 
             self.notify(ev)
 
-    def castTransmogrifier(self, transmog):
-        """Initialize a new transmogrifier and use it to replace the old one.
-
-        transmog : class
-            A Transmogrifier class object.
-        """
-        self.transmogrifier = transmog(self.eventQueue)
-
     def feed(self, events):
         """Notify the TrollReactor of an event.
         """
@@ -362,8 +356,8 @@ class Client(TrollReactor):
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
-    def __init__(self, listen=Viewport()):
-        super(MiddleMan, self).__init__(listen=listen)
+    def __init__(self, transmog=Transmogrifier(), listen=Viewport()):
+        super(MiddleMan, self).__init__(transmog=transmog, listen=listen)
         self.on_stoppedTyping = self.on_typing
 
     def on_typing(self, ev):
