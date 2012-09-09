@@ -1,9 +1,8 @@
 Tromegle:  Troll Strangers!
 ========
-Tromegle is a library for managing interactions with [Omegle](http://omegle.com) users, or "strangers".
-
-At its simplest, Tromegle can be thought of as an unofficial API, complete with a client.  That said, Tromegle
-is first and foremost a tool for having a bit of fun at the expense of others.
+Tromegle started as a project through which to learn about HTTP requests and asynchronous I/O.  The idea was
+to learn how to use urllib(2) and later Twisted while having a bit of fun at the expense of a few [Omegle](http://omegle.com) users, or "strangers".
+It has since evolved into an unofficial API, complete with a simple client class.
 
 ###Trolling is a Art!
 The nonstandard functionality of Tromegle is centered around a relatively simple [man-in-the-middle attack](http://en.wikipedia.org/wiki/Man-in-the-middle_attack).
