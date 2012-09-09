@@ -274,13 +274,16 @@ class TrollReactor(CBDictInterface):
         self.listeners = WeakValueDictionary()
         # Argument assignment
         self.eventQueue = deque()
-        self.transmogrifier = transmog
-        self.transmogrifier.connect(self.eventQueue)
+        self.connectTransmogrifier(transmog)
         self.addListeners(listen)
         self._n = n
         self.refresh = refresh
 
         self.initializeStrangers()  # Now we wait to receive idSet events
+
+    def connectTransmogrifier(self, transmog):
+        self.transmogrifier = transmog
+        self.transmogrifier.connect(self.eventQueue)
 
     def initializeStrangers(self):
         self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(self._n)}
