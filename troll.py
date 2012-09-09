@@ -3,6 +3,10 @@ from sys import stderr
 from collections import deque
 from weakref import WeakValueDictionary
 
+from twisted.internet import reactor
+
+from omegle import Stranger, HTTP
+from core import CBDictInterface
 from event import Transmogrifier
 from listener import Viewport
 
