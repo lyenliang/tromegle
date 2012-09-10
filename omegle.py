@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from urllib import urlencode
-from json import loads
+import json 
 from random import choice
 from traceback import print_stack
 try:
@@ -35,12 +35,13 @@ class HTTP(Protocol):
     def connectionLost(self, reason):
         self.response.callback(self.data)
 
+RESPONSE_OK = 200
 
 class Stranger(object):
     """Class to encapsulate I/O to an Omegle user.
     """
-    _api = {k: 'http://omegle.com/' + k for
-            k in ['start', 'events', 'send', 'typing', 'disconnect']}
+    _ACTIONS = ('start', 'events', 'send','typing', 'disconnect')
+    _api = {a: 'http://omegle.com/' + a for a in _ACTIONS}
     uagents = ["Mozilla/5.0 (Windows NT 6.1; WOW64; rv:14.0) Gecko/20100101 Firefox/14.0.1",
               "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; FDM; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 1.1.4322)",
               "Mozilla/5.0 (Windows; U; Windows NT 6.1; es-AR; rv:1.9) Gecko/2008051206 Firefox/3.0"]
@@ -85,7 +86,7 @@ class Stranger(object):
         d.addCallback(self._assignID)
 
     def checkForOkStatus(self, response):
-        if response.code == 200:
+        if response.code == RESPONSE_OK:
             return response
         else:
             raise NoStrangerIDError(response)  # pass response so it can be examined
@@ -104,19 +105,11 @@ class Stranger(object):
             String of raw events from a POST request to
             an omegle subpage.
         """
-        events = loads(events)  # json.loads
-        if events is None:
-            return tuple()
-
-        parsedEvts = []
-        for ev in (e for e in events):
-            if len(ev) == 1:
-                data = None
-            else:
-                data = ev[1]
-            parsedEvts.append(Event(self.id, ev[0].encode('ascii'), data))  # move to function with 'yield' for memory efficiency?
-
-        return parsedEvts
+        events = json.loads(events) or ()
+        return [Event(self.id,
+                      ev[0].encode('ascii'),
+                      None if len(ev) == 1 else ev[1])
+                for ev in events]
 
     def getEventsPage(self):
         d = self.request('events', {'id': self.id})
@@ -133,7 +126,7 @@ class Stranger(object):
         d.addCallback(flip)
 
     def announceDisconnect(self):
-        d = self.request('disconnect', {'id': self.id})
+        self.request('disconnect', {'id': self.id})
 
     def sendMessage(self, msg):
-        d = self.request('send', {'msg': msg, 'id': self.id})
+        self.request('send', {'msg': msg, 'id': self.id})

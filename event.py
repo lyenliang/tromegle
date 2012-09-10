@@ -12,12 +12,22 @@ def spell(fn):
     else:
         def throwNone(out, ev):
             return None
+        return throwNone
 
 
 class Transmogrifier(object):
     def __init__(self, spells=None):
+        self._spells = ()
+
+        self._evQueue = None
         self.purge(spells)
-        self.push = self._spells.append
+
+    def push(self, spell):
+        self._spells.append(spell)
+
+    def output(self, ev):
+        assert self._evQueue, 'Transmogrifier is not connected.'
+        self._evQueue.append(ev)
 
     def __call__(self, events):
         """Cast all spells for each event in an iterable of events.
@@ -28,14 +38,10 @@ class Transmogrifier(object):
             if ev:  # Functions may return None in order to "blackhole" an event
                 self.output(ev)
 
-    def purge(self, spells=None):
-        if spells:
-            self._spells = [s for s in spells]
-        else:
-            self._spells = []
+    def purge(self, spells=()):
+        self._spells = list(spells)
 
     def connect(self, eventQueue):
         if not isinstance(eventQueue, deque):
             raise TypeError('Event queue must be a deque.')
         self._evQueue = eventQueue
-        self.output = self._evQueue.append
