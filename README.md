@@ -21,6 +21,12 @@ As of right now, the easiest way to obtain Tromegle is to clone this git reposit
 
 ```git clone https://github.com/louist87/tromegle.git```
 
+The package can then be installed withe the following commands:
+```
+cd tromegle
+sudo python setup.py install
+```
+
 I do plan to release this library as a pip package when it leaves alpha.
 
 Dependencies
