@@ -36,15 +36,22 @@ should work.
 
 ###Windows
 
-Download the installer from [here](http://twistedmatrix.com/trac/wiki/Downloads)
+Download the installer from [here][download]
 
 ###Any OS with pip installed (Mac/Win/*nix)
 
 ```pip install Twisted```
 
 ###OSX
-```sudo :(){:|:&};: && python-twisted```
 
+I don't own an Apple computer (too rich for my blood), but I understand that [OSX has shipped with Twisted pre-installed-ish since 2007][osx].
+So, there's a good chance that this code works with zero setup - woohoo! If you happen to have an OSX box, please give it a shot
+and let me know how it goes. Thanks!
+
+If you have trouble with the OSX version of Twisted, try [downloading the tarball][download] and installing it to a different `PYTHONPATH` than the default.
+
+[download]: http://twistedmatrix.com/trac/wiki/Downloads
+[osx]: http://twistedmatrix.com/trac/wiki/FrequentlyAskedQuestions#WhyamIgettingImportErrorsforTwistedsubpackagesonOSX10.5
 
 Using Tromegle
 ========
