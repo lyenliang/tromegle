@@ -86,7 +86,7 @@ class TrollReactor(CBDictInterface):
             self.notify(ev)
 
     def feed(self, events):
-        """Notify the TrollReactor of an event.
+        """Notify the TrollReactor of event(s).
         """
         if hasattr(events, '_fields'):
             events = (events,)  # convert to tuple

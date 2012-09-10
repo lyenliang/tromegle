@@ -16,7 +16,7 @@ def spell(fn):
 
 
 class Transmogrifier(object):
-    def __init__(self, spells=None):
+    def __init__(self, spells=()):
         self._spells = ()
 
         self._evQueue = None
@@ -26,7 +26,7 @@ class Transmogrifier(object):
         self._spells.append(spell)
 
     def output(self, ev):
-        assert self._evQueue, 'Transmogrifier is not connected.'
+        assert self._evQueue is not None, 'Transmogrifier is not connected.'
         self._evQueue.append(ev)
 
     def __call__(self, events):
