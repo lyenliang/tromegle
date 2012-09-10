@@ -2,6 +2,13 @@
 from collections import namedtuple, deque
 
 Event = namedtuple('OmegleEvent', ['id', 'type', 'data'])
+ID_SET = "idSet"
+WAITING = "waiting"
+CONNECTED = "connected"
+TYPING = "typing"
+STOPPED_TYPING = "stoppedTyping"
+GOT_MESSAGE = "gotMessage"
+DISCONNECTED = "strangerDisconnected"
 
 
 def spell(fn):

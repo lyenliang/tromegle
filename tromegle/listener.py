@@ -1,16 +1,10 @@
 #!/usr/bin/env python
-from collections import namedtuple
-
 from core import CBDictInterface
 
 
 class Viewport(CBDictInterface):
     """Interfae for printing conversations to standard output.
     """
-    # container for viewport messages.  'orig' parameter contains
-    #   untransmogrified message, or NoneType if the message was not altered.
-    Message = namedtuple('ViewportMessage', ['id', 'msg', 'orig'])
-
     def __init__(self, callbackdict=None):
         super(Viewport, self).__init__(callbackdict)
         self.strangers = {}

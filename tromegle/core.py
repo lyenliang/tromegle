@@ -1,23 +1,26 @@
 #!/usr/bin/env python
 from twisted.internet import reactor
 
+from event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAGE, DISCONNECTED
+
 startTrolling = reactor.run
 stopTrolling = reactor.stop
 
 _nothing = lambda x: None
+
 
 class CBDictInterface(object):
     """Base class for all classes responding to OmegleEvents.
     """
     def __init__(self, callbackdict=None):
         self.callbacks = callbackdict or {
-                            'idSet': self.on_idSet,
-                            'waiting': self.on_waiting,
-                            'connected': self.on_connected,
-                            'typing': self.on_typing,
-                            'stoppedTyping': self.on_stoppedTyping,
-                            'gotMessage': self.on_gotMessage,
-                            'strangerDisconnected': self.on_strangerDisconnected}
+                            ID_SET: self.on_idSet,
+                            WAITING: self.on_waiting,
+                            CONNECTED: self.on_connected,
+                            TYPING: self.on_typing,
+                            STOPPED_TYPING: self.on_stoppedTyping,
+                            GOT_MESSAGE: self.on_gotMessage,
+                            DISCONNECTED: self.on_strangerDisconnected}
 
     def on_idSet(self, ev):
         pass
