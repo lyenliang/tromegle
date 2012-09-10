@@ -17,7 +17,7 @@ class Viewport(CBDictInterface):
         self.ready = 0  # no strangers connected
 
     def on_idSet(self, ev):
-        tag = 'Stranger_' + str(len(self.strangers.keys()) + 1)
+        tag = 'Stranger_{0}'.format(len(self.strangers.keys()) + 1)
         self.strangers[ev.id] = tag
         print tag, "identified..."
 
