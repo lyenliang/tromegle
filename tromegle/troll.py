@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from sys import stderr
+from time import time
 from collections import deque
 from weakref import WeakValueDictionary
 
@@ -7,7 +7,7 @@ from twisted.internet import reactor
 
 from omegle import Stranger, HTTP
 from core import CBDictInterface
-from event import Transmogrifier
+from event import Transmogrifier, ReactorEvent, IDLE_TIMEOUT, NULL_EVENT
 from listener import Viewport
 
 
@@ -25,6 +25,8 @@ class TrollReactor(CBDictInterface):
         self._n = n
         self.refresh = refresh
 
+        self._allConnected = False
+        self.idleTime = None
         self.initializeStrangers()  # Now we wait to receive idSet events
 
     def connectTransmogrifier(self, transmog):
@@ -35,6 +37,8 @@ class TrollReactor(CBDictInterface):
         self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(self._n)}
         self._waiting = len(self._volatile.keys())
         self.strangers = {}
+        self.idleTime = time()
+        self._allConnected = False
 
     def multicastDisconnect(self, ids):
         """Announce disconnect for a group of strangers.
@@ -44,6 +48,11 @@ class TrollReactor(CBDictInterface):
         """
         for i in ids:
             self.strangers[i].announceDisconnect()
+
+    def restart(self):
+        self.strangers.clear()
+        self._allConnected = False
+        self.initializeStrangers()
 
     def pumpEvents(self):
         for id_ in self.strangers:
@@ -56,12 +65,12 @@ class TrollReactor(CBDictInterface):
             if s.id == ev.id:  # we have the stranger that notified
                 self.strangers[s.id] = s  # move to {id: stranger} dict
                 self._waiting -= 1
+
+        assert self._waiting >= 0, "Too many stranger IDs"
         if self._waiting == 0:
+            self._allConnected = True
+            self.idleTime = time()
             self.pumpEvents()
-        elif self._waiting < 0:
-            print_stack()
-            stderr.write("ERROR:  too many stranger IDs.")
-            reactor.stop()
 
     def addListeners(self, listeners):
         """Add a listener or group of listeners to the reactor.
@@ -85,9 +94,26 @@ class TrollReactor(CBDictInterface):
 
             self.notify(ev)
 
+    def deltaIdleTime(self):
+        return time() - self.idleTime
+
+    def idle(self):
+        """Respond to idle state.
+
+        This function is run whenever feed encounters a null event, and
+        does nothing by default.  Override to define functionality.
+        """
+        pass
+
     def feed(self, events):
         """Notify the TrollReactor of event(s).
         """
+        if not events or events is NULL_EVENT:
+            events = (NULL_EVENT,)
+            self.idle()
+        else:
+            self.idleTime = time()
+
         if hasattr(events, '_fields'):
             events = (events,)  # convert to tuple
 
@@ -105,23 +131,52 @@ class Client(TrollReactor):
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
-    def __init__(self, transmog=Transmogrifier(), listen=Viewport()):
+    def __init__(self, transmog=Transmogrifier(), listen=Viewport(), idle=(0., 0.)):
+        """Instantiate MiddleMan class
+
+        transmog : Transmogrifier instance
+
+        listen : single listener instance or iterable.
+            listeners to assign.
+
+        idle : tuple of floats
+            idle[0] =   maximum time to wait for all connections (seconds)
+            idle[1] =   maximum time to wait for an idle conversation to resume (seconds)
+        """
         super(MiddleMan, self).__init__(transmog=transmog, listen=listen)
+        self.max_connect_time, self.max_idle_time = idle
         self.on_stoppedTyping = self.on_typing
 
     def on_typing(self, ev):
         self.strangers[ev.id].toggle_typing()
 
     def on_strangerDisconnected(self, ev):
-        print "Restarting..."
         active = (i for i in self.strangers if i != ev.id)
         self.multicastDisconnect(active)  # announce disconnect to everyone
-        self.strangers.clear()  # disconnect from everyone (clear the dict)
-        self.initializeStrangers()
+        self.restart()
 
     def on_gotMessage(self, ev):
         for nonspeaker_id in (nspkr for nspkr in self.strangers if nspkr != ev.id):
             self.strangers[nonspeaker_id].sendMessage(ev.data)
+
+    def idle(self):
+        if not self.max_idle_time and not self.max_connect_time:
+            return
+
+        dIdle = self.deltaIdleTime()
+        print dIdle  # DEBUG
+        slow_conn = not self._allConnected and (dIdle > self.max_connect_time) and self.max_connect_time
+        slow_conv = self._allConnected and (dIdle > self.max_idle_time) and self.max_idle_time
+
+        print slow_conn
+        print slow_conv
+        if slow_conn or slow_conv:
+            print "TIMEOUT"  # DEBUG
+            self.feed(ReactorEvent(IDLE_TIMEOUT, None))
+
+    def on_timeout(self, ev):
+        self.multicastDisconnect((i for i in self.strangers))
+        self.restart()
 
 
 class OMiner(object):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from urllib import urlencode
-import json 
+import json
 from random import choice
 from traceback import print_stack
 try:
@@ -13,7 +13,7 @@ from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
 
-from event import Event
+from event import OmegleEvent
 
 
 class NoStrangerIDError(Exception):
@@ -96,7 +96,7 @@ class Stranger(object):
         from _getStrangerID
         """
         self.id = body.replace('"', '')
-        ev = Event(self.id, 'idSet', '')
+        ev = OmegleEvent(self.id, 'idSet', '')
         self.troll.feed(ev)  # ready to go!
 
     def parse_raw_events(self, events):
@@ -105,13 +105,17 @@ class Stranger(object):
             String of raw events from a POST request to
             an omegle subpage.
 
-        return : generator
+        return : generator or NoneType
+            Return generator with events or None if there are no events.
         """
-        events = json.loads(events) or ()
-        return (Event(self.id,
-                      ev[0].encode('ascii'),
-                      None if len(ev) == 1 else ev[1])
-                for ev in events)
+        events = json.loads(events) or None
+        if events:
+            events = (OmegleEvent(self.id,
+                            ev[0].encode('ascii'),
+                            None if len(ev) == 1 else ev[1])
+                      for ev in events)
+
+        return events
 
     def getEventsPage(self):
         d = self.request('events', {'id': self.id})

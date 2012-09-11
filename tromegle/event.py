@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from collections import namedtuple, deque
 
-Event = namedtuple('OmegleEvent', ['id', 'type', 'data'])
+OmegleEvent = namedtuple('OmegleEvent', ['id', 'type', 'data'])
 ID_SET = "idSet"
 WAITING = "waiting"
 CONNECTED = "connected"
@@ -9,6 +9,10 @@ TYPING = "typing"
 STOPPED_TYPING = "stoppedTyping"
 GOT_MESSAGE = "gotMessage"
 DISCONNECTED = "strangerDisconnected"
+NULL_EVENT = OmegleEvent(None, None, None)
+
+ReactorEvent = namedtuple('ReactorEvent', ['type', 'data'])
+IDLE_TIMEOUT = 'timeout'
 
 
 def spell(fn):

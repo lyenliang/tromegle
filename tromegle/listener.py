@@ -23,6 +23,7 @@ class Viewport(CBDictInterface):
         self.ready += 1
         if self.ready == len(self.strangers.keys()):
             print
+            self.ready = 0
 
     def on_strangerDisconnected(self, ev):
         print self.strangers[ev.id], "has disconnected."
@@ -32,3 +33,7 @@ class Viewport(CBDictInterface):
 
     def on_gotMessage(self, ev):
         print self.strangers[ev.id] + ": ", ev.data
+
+    def on_timeout(self, ev):
+        print "Idle timeout."
+        self.strangers.clear()
