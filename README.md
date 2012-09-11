@@ -17,7 +17,12 @@ tools to either observe or record conversations, or relevant portions thereof.
 
 Getting Tromegle
 ========
-As of right now, the easiest way to obtain Tromegle is to clone this git repository with this command:
+As of right now, the easiest way to obtain Tromegle is through pip.  Make sure pip is installed prior to running:
+
+```pip install tromegle``` as root.
+
+
+### Installing through Git
 
 ```git clone https://github.com/louist87/tromegle.git```
 
@@ -26,8 +31,6 @@ The package can then be installed withe the following commands:
 cd tromegle
 sudo python setup.py install
 ```
-
-I do plan to release this library as a pip package when it leaves alpha.
 
 Dependencies
 ========
