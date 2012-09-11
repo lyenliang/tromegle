@@ -17,6 +17,8 @@ tools to either observe or record conversations, or relevant portions thereof.
 
 Getting Tromegle
 ========
+###Installing through pip
+
 As of right now, the easiest way to obtain Tromegle is through pip.  Make sure pip is installed prior to running:
 
 ```pip install tromegle``` as root.
