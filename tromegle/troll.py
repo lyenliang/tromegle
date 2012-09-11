@@ -124,8 +124,47 @@ class TrollReactor(CBDictInterface):
 class Client(TrollReactor):
     """Extensible client for omegle.com.
     """
-    def __init__(self, listen=Viewport()):
+    def __init__(self, refresh=2):
         super(Client, self).__init__(listen=listen, n=1)
+        self.refresh = 2
+        self._connected = False
+        self.stranger = None
+
+        self.amTyping = False
+        self.isTyping = False
+        self.on_stoppedTyping = self.on_typing
+
+        self.reset()
+
+    def reset(self):
+        self._connected = False
+        self.stranger = None
+        self.amTyping = False
+        self.isTyping = False
+
+    def getStranger(self):
+        self.stranger = Stranger(reactor, self, HTTP)
+
+    def on_idSet(self, ev):
+        self._connected = True
+        self.pumpEvents()
+
+    def on_typing(self, ev):
+        self.isTyping = not self.isTyping
+
+    def on_strangerDisconnected(self, ev):
+        self.reset()
+
+    def disconnect(self):
+        self.stranger.announceDisconnect()
+        self.reset()
+
+    def sendMessage(self, msg):
+        self.stranger.sendMessage(msg)
+
+    def pumpEvents(self):
+        self.strangers.getEventsPage()
+        reactor.callLater(self.refresh, self.pumpEvents)
 
 
 class MiddleMan(TrollReactor):

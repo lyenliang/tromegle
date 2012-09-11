@@ -16,14 +16,6 @@ from twisted.web.http_headers import Headers
 from event import OmegleEvent
 
 
-class NoStrangerIDError(Exception):
-    def __init__(self, response):
-        self.response = response
-
-    def __str__(self):
-        return repr({'Code': self.response.code, 'Phrase': self.response.phrase})
-
-
 class HTTP(Protocol):
     def __init__(self, response):
         self.response = response
@@ -86,10 +78,8 @@ class Stranger(object):
         d.addCallback(self._assignID)
 
     def checkForOkStatus(self, response):
-        if response.code == self._RESPONSE_OK:
-            return response
-        else:
-            raise NoStrangerIDError(response)  # pass response so it can be examined
+        assert response.code == self._RESPONSE_OK, "Bad response to HTTP request."
+        return response
 
     def _assignID(self, body):
         """Download the body on successful header fetch
