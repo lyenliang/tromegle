@@ -13,5 +13,6 @@ setup(
     url='https://github.com/louist87/tromegle',
     license='GPL 3.0',
     description='Troll strangers!',
+    keywords = ["omegle", "trolling"],
     long_description=open('README.md').read()
 )
