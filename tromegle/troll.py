@@ -164,14 +164,10 @@ class MiddleMan(TrollReactor):
             return
 
         dIdle = self.deltaIdleTime()
-        print dIdle  # DEBUG
         slow_conn = not self._allConnected and (dIdle > self.max_connect_time) and self.max_connect_time
         slow_conv = self._allConnected and (dIdle > self.max_idle_time) and self.max_idle_time
 
-        print slow_conn
-        print slow_conv
         if slow_conn or slow_conv:
-            print "TIMEOUT"  # DEBUG
             self.feed(ReactorEvent(IDLE_TIMEOUT, None))
 
     def on_timeout(self, ev):
