@@ -66,12 +66,4 @@ If you have trouble with the OSX version of Twisted, try [downloading the tarbal
 
 Using Tromegle
 ========
-So far, the MiddleMan class is the only attack that is working.  More work will follow, including documentation.
-
-```python
-
-import tromegle
-
-m = tromegle.MiddleMan()
-tromegle.reactor.run()
-```
+Instructions on how to use Tromegle can be found in the [short and sweet introduction to Tromegle](http://github.com/louist87/tromegle/wiki/Short-and-Sweet-Introduction-to-Tromegle) wiki page.
