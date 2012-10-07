@@ -21,7 +21,7 @@ Getting Tromegle
 
 As of right now, the easiest way to obtain Tromegle is through pip.  Make sure pip is installed prior to running:
 
-```pip install tromegle``` as root.
+```pip install tromegle --user```
 
 
 ### Installing through Git
@@ -36,7 +36,8 @@ sudo python setup.py install
 
 Dependencies
 ========
-Tromegle requires that you have the latest version of [Twisted](http://twistedmatrix.com/) installed.
+Tromegle is maintained and tested on the latest version of [Twisted](http://twistedmatrix.com/).  It is very likely to
+continue working with older versions, however.
 
 Canonical installation instructions can be found on the above website, but the following installation steps
 should work.
@@ -55,11 +56,8 @@ Download the installer from [here][download]
 
 ###OSX
 
-I don't own an Apple computer (too rich for my blood), but I understand that [OSX has shipped with Twisted pre-installed-ish since 2007][osx].
-So, there's a good chance that this code works with zero setup - woohoo! If you happen to have an OSX box, please give it a shot
-and let me know how it goes. Thanks!
-
-If you have trouble with the OSX version of Twisted, try [downloading the tarball][download] and installing it to a different `PYTHONPATH` than the default.
+OSX has shipped with Twisted preinstalled since 2007, so Tromegle should work out-of-the-box!  If you have any trouble, you should try [this simple procedure](http://twistedmatrix.com/trac/wiki/FrequentlyAskedQuestions#WhyamIgettingImportErrorsforTwistedsubpackagesonOSX10.5).
+If that doesn't work, you can try [downloading the tarball][download] and installing it to a different `PYTHONPATH` than the default.
 
 [download]: http://twistedmatrix.com/trac/wiki/Downloads
 [osx]: http://twistedmatrix.com/trac/wiki/FrequentlyAskedQuestions#WhyamIgettingImportErrorsforTwistedsubpackagesonOSX10.5
