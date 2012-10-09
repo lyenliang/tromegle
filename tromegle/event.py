@@ -60,7 +60,7 @@ class Transmogrifier(object):
             raise TypeError('Event queue must be a deque.')
         self._evQueue = eventQueue
 
-    def _edit_dist_init(len1, len2):
+    def _edit_dist_init(self, len1, len2):
         """from NLTK 2.0
         """
         lev = []
@@ -72,15 +72,15 @@ class Transmogrifier(object):
             lev[0][j] = j  # row 0: 0,1,2,3,4,...
         return lev
 
-        def _edit_dist_step(lev, i, j, c1, c2):
-            """from NLTK 2.0
-            """
-            a = lev[i - 1][j] + 1  # skipping s1[i]
-            b = lev[i - 1][j - 1] + (c1 != c2)  # matching s1[i] with s2[j]
-            c = lev[i][j - 1] + 1  # skipping s2[j]
-            lev[i][j] = min(a, b, c)  # pick the cheapest
+    def _edit_dist_step(self, lev, i, j, c1, c2):
+        """from NLTK 2.0
+        """
+        a = lev[i - 1][j] + 1  # skipping s1[i]
+        b = lev[i - 1][j - 1] + (c1 != c2)  # matching s1[i] with s2[j]
+        c = lev[i][j - 1] + 1  # skipping s2[j]
+        lev[i][j] = min(a, b, c)  # pick the cheapest
 
-    def levenshtein_dist(s1, s2):
+    def levenshtein_dist(self, s1, s2):
         """
         Use:
         ====
@@ -109,11 +109,11 @@ class Transmogrifier(object):
         # set up a 2-D array
         len1 = len(s1)
         len2 = len(s2)
-        lev = _edit_dist_init(len1 + 1, len2 + 1)
+        lev = self._edit_dist_init(len1 + 1, len2 + 1)
 
         # iterate over the array
         for i in range(len1):
             for j in range(len2):
-                _edit_dist_step(lev, i + 1, j + 1, s1[i], s2[j])
+                self._edit_dist_step(lev, i + 1, j + 1, s1[i], s2[j])
 
         return lev[len1][len2]
