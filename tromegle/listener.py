@@ -82,6 +82,9 @@ class InteractiveViewport(CBDictInterface):
         self.write(self.formatNotification(output), '')  # print empty string to skip a line
         self.strangers.clear()
 
+    def on_error(self, ev):
+        self.write(self.formatError(ev.id, ev.data))
+
     def on_gotMessage(self, ev):
         output = self.strangers[ev.id] + ": " + ev.data
         self.write(self.formatMessage(ev.id, output))
@@ -116,6 +119,9 @@ class InteractiveViewport(CBDictInterface):
         orig_string = "{t.cyan}{msg}{t.normal}".format(t=self.term, msg=orig_string)
         return mod_string, orig_string
 
+    def formatError(self, sid, err_msg):
+        return "{t.bold}{t.red_on_white}ERROR <{s}>: {t.normal}{t.red_on_white}{msg}{t.normal}".format(t=self.term, s=self.strangers[sid], msg=err_msg)
+
     def write(self, *args):
         """Print message to output.
         """
@@ -126,13 +132,14 @@ class InteractiveViewport(CBDictInterface):
 class EventLogger(object):
     """Class to log Tromegle events for debugging purposes.
     """
-    def __init__(self, logfile='tromegleEvents.log', backupCount=2, maxbytes=200):
+    def __init__(self, logfile='tromegleEvents.log', backupCount=1, maxbytes=200):
         import logging
         import logging.handlers
         self.file = logfile
         self.logger = logging.getLogger('tromegleEvents')
         self.logger.setLevel(logging.DEBUG)
-        self.handler = logging.handlers.RotatingFileHandler(self.file, maxbytes=maxbytes,
+        self.handler = logging.handlers.RotatingFileHandler(self.file,
+                                                            maxBytes=maxbytes,
                                                             backupCount=backupCount)
         self.logger.addHandler(self.handler)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from twisted.internet import reactor
 
-from event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAGE, DISCONNECTED, IDLE_TIMEOUT, MESSAGE_MODIFIED
+from event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAGE, DISCONNECTED, ERROR, IDLE_TIMEOUT, MESSAGE_MODIFIED
 
 startTrolling = reactor.run
 stopTrolling = reactor.stop
@@ -21,6 +21,7 @@ class CBDictInterface(object):
                             STOPPED_TYPING: self.on_stoppedTyping,
                             GOT_MESSAGE: self.on_gotMessage,
                             DISCONNECTED: self.on_strangerDisconnected,
+                            ERROR: self.on_error,
                             IDLE_TIMEOUT: self.on_timeout,
                             MESSAGE_MODIFIED: self.on_messageModified}
 
@@ -43,6 +44,9 @@ class CBDictInterface(object):
         pass
 
     def on_strangerDisconnected(self, ev):
+        pass
+
+    def on_error(self, ev):
         pass
 
     def on_timeout(self, ev):

@@ -10,6 +10,7 @@ TYPING = "typing"
 STOPPED_TYPING = "stoppedTyping"
 GOT_MESSAGE = "gotMessage"
 DISCONNECTED = "strangerDisconnected"
+ERROR = "error"
 NULL_EVENT = OmegleEvent(None, None, None)
 
 # Reactor events

@@ -72,6 +72,9 @@ class TrollReactor(CBDictInterface):
             self.idleTime = time()
             self.pumpEvents()
 
+    def on_error(self, ev):
+        pass  #  This is where we handle RECAPCHA
+
     def addListeners(self, listeners):
         """Add a listener or group of listeners to the reactor.
 
