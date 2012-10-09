@@ -14,6 +14,8 @@ class Viewport(CBDictInterface):
         self.strangers = {}
         self.ready = 0  # no strangers connected
 
+        print "WARNING:  This class is deprecated; It is no longer under active development and is retained as a convenience only.  Use InteractiveViewport instead."
+
     def on_idSet(self, ev):
         tag = 'Stranger_{0}'.format(len(self.strangers.keys()) + 1)
         self.strangers[ev.id] = tag
