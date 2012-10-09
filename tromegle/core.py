@@ -6,7 +6,7 @@ from event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAG
 startTrolling = reactor.run
 stopTrolling = reactor.stop
 
-_nothing = lambda x: None
+_doNothing = lambda x: None
 
 
 class CBDictInterface(object):
@@ -52,4 +52,4 @@ class CBDictInterface(object):
         pass
 
     def notify(self, ev):
-        self.callbacks.get(ev.type, _nothing)(ev)
+        self.callbacks.get(ev.type, _doNothing)(ev)

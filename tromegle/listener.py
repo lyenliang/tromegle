@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from core import CBDictInterface
 from blessings import Terminal
+from core import CBDictInterface
 
 
 class Viewport(CBDictInterface):
@@ -121,3 +121,20 @@ class InteractiveViewport(CBDictInterface):
         """
         for msg in args:
             print msg
+
+
+class EventLogger(object):
+    """Class to log Tromegle events for debugging purposes.
+    """
+    def __init__(self, logfile='tromegleEvents.log', backupCount=2, maxbytes=200):
+        import logging
+        import logging.handlers
+        self.file = logfile
+        self.logger = logging.getLogger('tromegleEvents')
+        self.logger.setLevel(logging.DEBUG)
+        self.handler = logging.handlers.RotatingFileHandler(self.file, maxbytes=maxbytes,
+                                                            backupCount=backupCount)
+        self.logger.addHandler(self.handler)
+
+    def notify(self, ev):
+        self.logger.debug('{0}'.format(repr(ev)))
