@@ -9,7 +9,7 @@ setup(
     author_email='',
     packages=['tromegle'],
     include_package_data=True,
-    install_requires=['Twisted>=11.1.0'],
+    install_requires=['Twisted>=11.1.0', 'blessings>=1.5'],
     url='https://github.com/louist87/tromegle',
     license='GPL 3.0',
     description='Troll strangers!',
