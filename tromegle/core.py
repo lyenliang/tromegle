@@ -48,5 +48,8 @@ class CBDictInterface(object):
     def on_timeout(self, ev):
         pass
 
+    def on_messageModified(self, ev):
+        pass
+
     def notify(self, ev):
         self.callbacks.get(ev.type, _nothing)(ev)

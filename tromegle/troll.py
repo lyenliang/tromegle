@@ -7,14 +7,14 @@ from twisted.internet import reactor
 
 from omegle import Stranger, HTTP
 from core import CBDictInterface
-from event import Transmogrifier, ReactorEvent, IDLE_TIMEOUT, NULL_EVENT
-from listener import Viewport
+from event import isEvent, mkIterableSequence, Transmogrifier, ReactorEvent, IDLE_TIMEOUT, NULL_EVENT
+from listener import InteractiveViewport
 
 
 class TrollReactor(CBDictInterface):
     """Base class for Omegle API.
     """
-    def __init__(self, transmog=Transmogrifier(), listen=Viewport(), n=2, refresh=1.5):
+    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(), n=2, refresh=1.5):
         # Independent setup
         super(TrollReactor, self).__init__()
         self.listeners = WeakValueDictionary()
@@ -77,8 +77,7 @@ class TrollReactor(CBDictInterface):
 
         listeners : CBDictInterface instance or iterable
         """
-        if not hasattr(listeners, '__iter__'):
-            listeners = (listeners,)
+        listeners = mkIterableSequence(listeners)
 
         for listen in listeners:
             self.listeners[listen] = listen  # weak-value dict
@@ -114,8 +113,8 @@ class TrollReactor(CBDictInterface):
         else:
             self.idleTime = time()
 
-        if hasattr(events, '_fields'):
-            events = (events,)  # convert to tuple
+        if isEvent(events):  # if events is a single event
+            events = (events,)
 
         self.transmogrifier(events)
         self._processEventQueue()
@@ -170,7 +169,7 @@ class Client(TrollReactor):
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
-    def __init__(self, transmog=Transmogrifier(), listen=Viewport(), idle=(0., 0.)):
+    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(), idle=(0., 0.)):
         """Instantiate MiddleMan class
 
         transmog : Transmogrifier instance
