@@ -13,7 +13,7 @@ from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
 
-from event import OmegleEvent
+from event import OmegleEvent, ID_SET
 
 
 class HTTP(Protocol):
@@ -86,7 +86,7 @@ class Stranger(object):
         from _getStrangerID
         """
         self.id = body.replace('"', '')
-        ev = OmegleEvent(self.id, 'idSet', '')
+        ev = OmegleEvent(self.id, ID_SET, '')
         self.troll.feed(ev)  # ready to go!
 
     def parse_raw_events(self, events):
