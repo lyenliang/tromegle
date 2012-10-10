@@ -33,7 +33,7 @@ class Stranger(object):
     """
     _RESPONSE_OK = 200
     _ACTIONS = ('start', 'events', 'send','typing', 'disconnect')
-    _api = {a: 'http://omegle.com/' + a for a in _ACTIONS}
+    _api = dict(((a, 'http://omegle.com/' + a) for a in _ACTIONS))
     uagents = ["Mozilla/5.0 (Windows NT 6.1; WOW64; rv:14.0) Gecko/20100101 Firefox/14.0.1",
               "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; FDM; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 1.1.4322)",
               "Mozilla/5.0 (Windows; U; Windows NT 6.1; es-AR; rv:1.9) Gecko/2008051206 Firefox/3.0"]

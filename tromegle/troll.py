@@ -34,7 +34,7 @@ class TrollReactor(CBDictInterface):
         self.transmogrifier.connect(self.eventQueue)
 
     def initializeStrangers(self):
-        self._volatile = {Stranger(reactor, self, HTTP): None for _ in xrange(self._n)}
+        self._volatile = dict((Stranger(reactor, self, HTTP), None) for _ in xrange(self._n))
         self._waiting = len(self._volatile.keys())
         self.strangers = {}
         self.idleTime = time()
