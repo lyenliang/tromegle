@@ -86,15 +86,14 @@ class InteractiveViewport(CBDictInterface):
         self.write(self.formatError(ev.id, ev.data))
 
     def on_gotMessage(self, ev):
-        output = self.strangers[ev.id] + ": " + ev.data
-        self.write(self.formatMessage(ev.id, output))
+        self.write(self.formatMessage(ev.id, ev.data))
 
     def on_timeout(self, ev):
         self.write(self.formatNotification("Idle timeout."))
         self.strangers.clear()
 
     def on_messageModified(self, ev):
-        old_ev = ev[0]
+        old_ev = ev.data[0]
         mod_string = ev.data[1]
         mod_string, orig_string = self.formatCorrection(old_ev.id, mod_string, old_ev.data)
         self.write(mod_string, orig_string)
@@ -116,7 +115,9 @@ class InteractiveViewport(CBDictInterface):
 
     def formatCorrection(self, stranger_id, mod_string, orig_string):
         mod_string = self.formatMessage(stranger_id, mod_string)
-        orig_string = "{t.cyan}{msg}{t.normal}".format(t=self.term, msg=orig_string)
+
+        indent = ' ' * len(self.strangers[stranger_id])
+        orig_string = "{t.cyan}{0}{msg}{t.normal}".format(indent, t=self.term, msg=orig_string)
         return mod_string, orig_string
 
     def formatError(self, sid, err_msg):
