@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from time import time
+from time import time, sleep
 from collections import deque
 from weakref import WeakValueDictionary
 
@@ -14,7 +14,7 @@ from listener import InteractiveViewport
 class TrollReactor(CBDictInterface):
     """Base class for Omegle API.
     """
-    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(), n=2, refresh=1.5):
+    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(), n=2, refresh=2.):
         # Independent setup
         super(TrollReactor, self).__init__()
         self.listeners = WeakValueDictionary()
@@ -26,6 +26,7 @@ class TrollReactor(CBDictInterface):
         self.refresh = refresh
 
         self._allConnected = False
+        self.reconnectWait = 2.
         self.idleTime = None
         self.initializeStrangers()  # Now we wait to receive idSet events
 
@@ -52,6 +53,7 @@ class TrollReactor(CBDictInterface):
     def restart(self):
         self.strangers.clear()
         self._allConnected = False
+        sleep(self.reconnectWait)  # blocking is OK here.  We are trying to *avoid* making connections.
         self.initializeStrangers()
 
     def pumpEvents(self):
@@ -73,7 +75,8 @@ class TrollReactor(CBDictInterface):
             self.pumpEvents()
 
     def on_error(self, ev):
-        pass  #  This is where we handle RECAPCHA
+        # TODO:  handle RECAPCHA
+        pass
 
     def addListeners(self, listeners):
         """Add a listener or group of listeners to the reactor.

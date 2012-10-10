@@ -2,7 +2,6 @@
 from urllib import urlencode
 import json
 from random import choice
-from traceback import print_stack
 try:
     from cStringIO import StringIO
 except:
@@ -32,7 +31,7 @@ class Stranger(object):
     """Class to encapsulate I/O to an Omegle user.
     """
     _RESPONSE_OK = 200
-    _ACTIONS = ('start', 'events', 'send','typing', 'disconnect')
+    _ACTIONS = ('start', 'events', 'send', 'typing', 'disconnect')
     _api = dict(((a, 'http://omegle.com/' + a) for a in _ACTIONS))
     uagents = ["Mozilla/5.0 (Windows NT 6.1; WOW64; rv:14.0) Gecko/20100101 Firefox/14.0.1",
               "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; FDM; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 1.1.4322)",
