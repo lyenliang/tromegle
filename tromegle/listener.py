@@ -164,6 +164,7 @@ class MessageLogger(CBDictInterface):
         self.handler = logging.handlers.RotatingFileHandler(self.file,
                                                             maxBytes=maxbytes,
                                                             backupCount=backupCount)
+        self.logger.addHandler(self.handler)
 
     def on_idSet(self, ev):
         tag = 'Stranger_{0}'.format(len(self.strangers.keys()) + 1)
