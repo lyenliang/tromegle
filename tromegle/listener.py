@@ -146,3 +146,46 @@ class EventLogger(object):
 
     def notify(self, ev):
         self.logger.debug('{0}'.format(repr(ev)))
+
+
+class MessageLogger(CBDictInterface):
+    """
+    """
+    def __init__(self, logfile='chat.log', backupCount=10, maxbytes=0, callbackdict=None):
+        super(MessageLogger, self).__init__(callbackdict)
+        self.strangers = {}
+
+        import logging
+        import logging.handlers
+        self.lognum = 0
+        self.file = logfile
+        self.logger = logging.getLogger('tromegleChat')
+        self.logger.setLevel(logging.DEBUG)
+        self.handler = logging.handlers.RotatingFileHandler(self.file,
+                                                            maxBytes=maxbytes,
+                                                            backupCount=backupCount)
+
+    def on_idSet(self, ev):
+        tag = 'Stranger_{0}'.format(len(self.strangers.keys()) + 1)
+        self.strangers[ev.id] = tag
+
+    def on_connected(self, ev):
+        if self.lognum:
+            self.handler.doRollover()
+        self.lognum += 1
+
+    def on_strangerDisconnected(self, ev):
+        self.log("{0} disconnected".format(self.stranger[ev.id]))
+
+    def on_gotMessage(self, ev):
+        self.log("{strngr}: {msg}".format(strngr=self.strangers[ev.id], msg=ev.data))
+
+    def on_messageModified(self, ev):
+        old_ev = ev.data[0]
+        mod_string = ev.data[1]
+        mod_string, orig_string = self.formatCorrection(old_ev.id, mod_string, old_ev.data)
+        self.log(mod_string, orig_string)
+
+    def log(self, *args):
+        for msg in args:
+            self.logger.debug(msg)
