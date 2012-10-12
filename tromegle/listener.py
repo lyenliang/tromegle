@@ -93,9 +93,7 @@ class InteractiveViewport(CBDictInterface):
         self.strangers.clear()
 
     def on_messageModified(self, ev):
-        old_ev = ev.data[0]
-        mod_string = ev.data[1]
-        mod_string, orig_string = self.formatCorrection(old_ev.id, mod_string, old_ev.data)
+        mod_string, orig_string = self.formatCorrection(ev.data['old'].id, ev.data['msg'], ev.data['old'].data)
         self.write(mod_string, orig_string)
 
     def formatNotification(self, string):
@@ -117,7 +115,7 @@ class InteractiveViewport(CBDictInterface):
         mod_string = self.formatMessage(stranger_id, mod_string)
 
         indent = ' ' * len(self.strangers[stranger_id])
-        orig_string = "{t.cyan}{0}{msg}{t.normal}".format(indent, t=self.term, msg=orig_string)
+        orig_string = "{t.cyan}{0}  {msg}{t.normal}".format(indent, t=self.term, msg=orig_string)
         return mod_string, orig_string
 
     def formatError(self, sid, err_msg):
@@ -133,7 +131,7 @@ class InteractiveViewport(CBDictInterface):
 class EventLogger(object):
     """Class to log Tromegle events for debugging purposes.
     """
-    def __init__(self, logfile='tromegleEvents.log', backupCount=1, maxbytes=200):
+    def __init__(self, logfile='tromegleEvents.log', backupCount=2, maxbytes=200):
         import logging
         import logging.handlers
         self.file = logfile
@@ -145,7 +143,7 @@ class EventLogger(object):
         self.logger.addHandler(self.handler)
 
     def notify(self, ev):
-        self.logger.debug('{0}'.format(repr(ev)))
+        self.logger.debug('{0}'.format(ev))
 
 
 class MessageLogger(CBDictInterface):
@@ -176,15 +174,15 @@ class MessageLogger(CBDictInterface):
         self.lognum += 1
 
     def on_strangerDisconnected(self, ev):
-        self.log("{0} disconnected".format(self.stranger[ev.id]))
+        self.log("{0} disconnected".format(self.strangers[ev.id]))
 
     def on_gotMessage(self, ev):
         self.log("{strngr}: {msg}".format(strngr=self.strangers[ev.id], msg=ev.data))
 
     def on_messageModified(self, ev):
-        old_ev = ev.data[0]
-        mod_string = ev.data[1]
-        mod_string, orig_string = self.formatCorrection(old_ev.id, mod_string, old_ev.data)
+        stranger = self.strangers[ev.data['old'].id]
+        mod_string = "{0}: {1}".format(stranger, ev.data)
+        orig_string = "{0}  {1}".format('' * len(stranger), ev.data['old'].data)
         self.log(mod_string, orig_string)
 
     def log(self, *args):

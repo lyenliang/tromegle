@@ -16,6 +16,9 @@ NULL_EVENT = OmegleEvent(None, None, None)
 # Reactor events
 ReactorEvent = namedtuple('ReactorEvent', ['type', 'data'])
 IDLE_TIMEOUT = 'timeout'
+
+# Message Modified event
+MessageModifiedEvent = namedtuple('MessageModifiedEvent', ['type', 'data', 'old'])
 MESSAGE_MODIFIED = 'messageModified'
 
 
@@ -39,7 +42,7 @@ def mkIterableSequence(obj):
 def spell(fn):
     """Spell decorator
     """
-    if fn is not None:
+    if fn is not None:  # TODO:  wrapper function to reject events for which Transmogrifier.isMessage == False
         return fn
     else:
         def throwNone(out, ev):
@@ -57,6 +60,8 @@ class Transmogrifier(object):
     def __call__(self, events):
         """Cast all spells for each event in an iterable of events.
         """
+        if isEvent(events):
+            events = (events,)
         for ev in events:
             for spell in self._spells:
                 ev = spell(self, ev)
@@ -66,8 +71,7 @@ class Transmogrifier(object):
     def connect(self, eventQueue):
         """Connect Transmogrifier to an eventQueue.
         """
-        if not isinstance(eventQueue, deque):
-            raise TypeError('Event queue must be a deque.')
+        assert isinstance(eventQueue, deque), 'Event queue must be a deque.'
         self._evQueue = eventQueue
 
     def push(self, spell):
@@ -82,7 +86,14 @@ class Transmogrifier(object):
         """
         self._spells = list(mkIterableSequence(spells))
 
-    def modifyMessage(self, ev, new_msg):
+    @staticmethod
+    def isMessage(ev):
+        """Returns True if event is a `gotMessage` or `messageModified` event.
+        """
+        return ev.type == MESSAGE_MODIFIED or ev.type == GOT_MESSAGE
+
+    @staticmethod
+    def modifyMessage(ev, new_msg):
         """Take in a gotMessage event and modify its message contents.
 
         ev : OmegleEvent
@@ -94,8 +105,9 @@ class Transmogrifier(object):
         return : ReactorEvent
             ReactorEvent containing old and new message.
         """
-        assert ev.type == GOT_MESSAGE, "Event is not a gotMessage event."
-        return ReactorEvent(MESSAGE_MODIFIED, (ev, new_msg))
+        if ev.type == MESSAGE_MODIFIED:
+            ev = ev.data['old']
+        return ReactorEvent(MESSAGE_MODIFIED, {'msg': new_msg, 'old': ev})
 
     def output(self, ev):
         """Output event to the registered event queue.
@@ -103,7 +115,8 @@ class Transmogrifier(object):
         assert self._evQueue is not None, 'Transmogrifier is not connected.'
         self._evQueue.append(ev)
 
-    def levenshtein_dist(self, s1, s2):
+    @staticmethod
+    def levenshtein_dist(s1, s2):
         """
         Use:
         ====
@@ -132,16 +145,17 @@ class Transmogrifier(object):
         # set up a 2-D array
         len1 = len(s1)
         len2 = len(s2)
-        lev = self._edit_dist_init(len1 + 1, len2 + 1)
+        lev = Transmogrifier._edit_dist_init(len1 + 1, len2 + 1)
 
         # iterate over the array
         for i in range(len1):
             for j in range(len2):
-                self._edit_dist_step(lev, i + 1, j + 1, s1[i], s2[j])
+                Transmogrifier._edit_dist_step(lev, i + 1, j + 1, s1[i], s2[j])
 
         return lev[len1][len2]
 
-    def _edit_dist_init(self, len1, len2):
+    @staticmethod
+    def _edit_dist_init(len1, len2):
         """from NLTK 2.0
         """
         lev = []
@@ -153,7 +167,8 @@ class Transmogrifier(object):
             lev[0][j] = j  # row 0: 0,1,2,3,4,...
         return lev
 
-    def _edit_dist_step(self, lev, i, j, c1, c2):
+    @staticmethod
+    def _edit_dist_step(lev, i, j, c1, c2):
         """from NLTK 2.0
         """
         a = lev[i - 1][j] + 1  # skipping s1[i]
