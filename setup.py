@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='tromegle',
-    version='0.1.1c alpha',
+    version='0.1.2 alpha',
     author='Louis Thibault',
     author_email='',
     packages=['tromegle'],
