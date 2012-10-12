@@ -14,12 +14,30 @@ ERROR = "error"
 NULL_EVENT = OmegleEvent(None, None, None)
 
 # Reactor events
-ReactorEvent = namedtuple('ReactorEvent', ['type', 'data'])
+_ReactorEvent = namedtuple('ReactorEvent', ['type', 'data'])
 IDLE_TIMEOUT = 'timeout'
 
 # Message Modified event
-MessageModifiedEvent = namedtuple('MessageModifiedEvent', ['type', 'data', 'old'])
+_MessageModifiedEvent = namedtuple('MessageModifiedEvent', ['type', 'data', 'old'])
 MESSAGE_MODIFIED = 'messageModified'
+
+
+def IdleTimeoutEvent(delta_t):
+    return _ReactorEvent(IDLE_TIMEOUT, delta_t)
+
+
+def MessageModifiedEvent(data, old):
+    """Create MessageModifiedEvent.
+
+    data : str
+        New message string
+
+    old : OmegleEvent
+        The gotMessage OmegleEvent being modified.
+
+    return : MessageModifiedEvent
+    """
+    return _MessageModifiedEvent(MESSAGE_MODIFIED, data, old)
 
 
 def isEvent(obj):
@@ -106,8 +124,8 @@ class Transmogrifier(object):
             ReactorEvent containing old and new message.
         """
         if ev.type == MESSAGE_MODIFIED:
-            ev = ev.data['old']
-        return ReactorEvent(MESSAGE_MODIFIED, {'msg': new_msg, 'old': ev})
+            ev = ev.old
+        return MessageModifiedEvent(new_msg, ev)
 
     def output(self, ev):
         """Output event to the registered event queue.

@@ -93,7 +93,7 @@ class InteractiveViewport(CBDictInterface):
         self.strangers.clear()
 
     def on_messageModified(self, ev):
-        mod_string, orig_string = self.formatCorrection(ev.data['old'].id, ev.data['msg'], ev.data['old'].data)
+        mod_string, orig_string = self.formatCorrection(ev.old.id, ev.data, ev.old.data)
         self.write(mod_string, orig_string)
 
     def formatNotification(self, string):
@@ -180,9 +180,9 @@ class MessageLogger(CBDictInterface):
         self.log("{strngr}: {msg}".format(strngr=self.strangers[ev.id], msg=ev.data))
 
     def on_messageModified(self, ev):
-        stranger = self.strangers[ev.data['old'].id]
+        stranger = self.strangers[ev.old.id]
         mod_string = "{0}: {1}".format(stranger, ev.data)
-        orig_string = "{0}  {1}".format('' * len(stranger), ev.data['old'].data)
+        orig_string = "{0}  {1}".format('' * len(stranger), ev.old.data)
         self.log(mod_string, orig_string)
 
     def log(self, *args):

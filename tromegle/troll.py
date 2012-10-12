@@ -7,7 +7,7 @@ from twisted.internet import reactor
 
 from omegle import Stranger, HTTP
 from core import CBDictInterface
-from event import isEvent, mkIterableSequence, Transmogrifier, ReactorEvent, IDLE_TIMEOUT, NULL_EVENT
+from event import isEvent, mkIterableSequence, Transmogrifier, IdleTimeoutEvent, NULL_EVENT
 from listener import InteractiveViewport
 
 
@@ -129,7 +129,7 @@ class TrollReactor(CBDictInterface):
 class Client(TrollReactor):
     """Extensible client for omegle.com.
     """
-    def __init__(self, refresh=2):
+    def __init__(self, listen=InteractiveViewport(), refresh=2):
         super(Client, self).__init__(listen=listen, n=1)
         self.refresh = 2
         self._connected = False
@@ -212,7 +212,7 @@ class MiddleMan(TrollReactor):
         slow_conv = self._allConnected and (dIdle > self.max_idle_time) and self.max_idle_time
 
         if slow_conn or slow_conv:
-            self.feed(ReactorEvent(IDLE_TIMEOUT, None))
+            self.feed(IdleTimeoutEvent(dIdle))
 
     def on_timeout(self, ev):
         self.multicastDisconnect((i for i in self.strangers))
