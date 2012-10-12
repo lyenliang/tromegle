@@ -52,6 +52,7 @@ class TrollReactor(CBDictInterface):
 
     def restart(self):
         self.strangers.clear()
+        self.eventQueue.clear()
         self._allConnected = False
         sleep(self.reconnectWait)  # blocking is OK here.  We are trying to *avoid* making connections.
         self.initializeStrangers()
