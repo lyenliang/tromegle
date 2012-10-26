@@ -104,6 +104,14 @@ class Transmogrifier(object):
         """
         self._spells = list(mkIterableSequence(spells))
 
+    def getSpells(self):
+        """Get spell queue.
+
+        return:  tuple
+            Tuple containing spells in the order in which they will be cast.
+        """
+        return tuple(self._spells)
+
     @staticmethod
     def isMessage(ev):
         """Returns True if event is a `gotMessage` or `messageModified` event.
@@ -123,8 +131,9 @@ class Transmogrifier(object):
         return : ReactorEvent
             ReactorEvent containing old and new message.
         """
+        assert Transmogrifier.isMessage(ev), 'Cannot modify non-message events.'
         if ev.type == MESSAGE_MODIFIED:
-            ev = ev.old
+            ev = ev.old  # make sure the original message is always in .old
         return MessageModifiedEvent(new_msg, ev)
 
     def output(self, ev):
