@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 from twisted.internet import reactor
+from twisted.python import log
 
 from tromegle.event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAGE, DISCONNECTED, ERROR, IDLE_TIMEOUT, MESSAGE_MODIFIED
 
-startTrolling = reactor.run
+
+#startTrolling = reactor.run
+def startTrolling():
+    with open('errors.log', 'wt') as f:
+        log.startLogging(f)
+        reactor.run()
+
 stopTrolling = reactor.stop
 
 _doNothing = lambda x: None
