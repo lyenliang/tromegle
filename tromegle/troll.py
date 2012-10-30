@@ -5,10 +5,10 @@ from weakref import WeakValueDictionary
 
 from twisted.internet import reactor
 
-from omegle import Stranger, HTTP
-from core import CBDictInterface
-from event import isEvent, mkIterableSequence, Transmogrifier, IdleTimeoutEvent, NULL_EVENT
-from listener import InteractiveViewport
+from tromegle.omegle import Stranger, HTTP
+from tromegle.core import CBDictInterface
+from tromegle.event import isEvent, mkIterableSequence, Transmogrifier, IdleTimeoutEvent, NULL_EVENT
+from tromegle.listener import InteractiveViewport
 
 
 class TrollReactor(CBDictInterface):

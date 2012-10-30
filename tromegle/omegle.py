@@ -11,8 +11,9 @@ from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
+from twisted.python import log
 
-from event import OmegleEvent, ID_SET
+from tromegle.event import OmegleEvent, ID_SET
 
 
 class HTTP(Protocol):
@@ -56,11 +57,15 @@ class Stranger(object):
     def request(self, api_call, data):
         agent = Agent(self.reactor)
         header = {'User-Agent': [self.agent],
-                  'content-type': ['application/x-www-form-urlencoded']}
+                  'content-type': ['application/x-www-form-urlencoded; charset=utf-8']}
+                  # text/xml; charset=utf-8
         data = urlencode(data)
-        return agent.request(
-                'POST', self._api[api_call], Headers(header),
-                FileBodyProducer(StringIO(data)))
+        request = agent.request('POST',
+                                self._api[api_call],
+                                Headers(header),
+                                FileBodyProducer(StringIO(data)))
+
+        return request.addErrback(log.err, 'Error sending %r to %s' % (data, api_call))
 
     def getBody(self, response):
         body = Deferred()
@@ -124,4 +129,4 @@ class Stranger(object):
         self.request('disconnect', {'id': self.id})
 
     def sendMessage(self, msg):
-        self.request('send', {'msg': msg, 'id': self.id})
+        self.request('send', {'msg': msg.encode('utf-8'), 'id': self.id})

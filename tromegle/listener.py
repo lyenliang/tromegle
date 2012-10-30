@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from blessings import Terminal
-from core import CBDictInterface
+from tromegle.core import CBDictInterface
 
 
 class Viewport(CBDictInterface):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from twisted.internet import reactor
 
-from event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAGE, DISCONNECTED, ERROR, IDLE_TIMEOUT, MESSAGE_MODIFIED
+from tromegle.event import ID_SET, WAITING, CONNECTED, TYPING, STOPPED_TYPING, GOT_MESSAGE, DISCONNECTED, ERROR, IDLE_TIMEOUT, MESSAGE_MODIFIED
 
 startTrolling = reactor.run
 stopTrolling = reactor.stop
