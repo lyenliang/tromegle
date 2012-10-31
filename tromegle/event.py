@@ -11,14 +11,15 @@ STOPPED_TYPING = "stoppedTyping"
 GOT_MESSAGE = "gotMessage"
 DISCONNECTED = "strangerDisconnected"
 ERROR = "error"
+TIMEOUT_EVENT = 'connectionTimeout'
 NULL_EVENT = OmegleEvent(None, None, None)
 
 # Reactor events
 _ReactorEvent = namedtuple('ReactorEvent', ['type', 'data'])
 IDLE_TIMEOUT = 'timeout'
 
-# Message Modified event
-_MessageModifiedEvent = namedtuple('MessageModifiedEvent', ['type', 'data', 'old'])
+# Transmogrifier Events
+_MessageModifiedEvent = namedtuple('TransmogrifierEvent', ['type', 'data', 'old'])
 MESSAGE_MODIFIED = 'messageModified'
 
 
