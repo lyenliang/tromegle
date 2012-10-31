@@ -107,7 +107,7 @@ class Stranger(object):
         # lvl 2
         d.addCallback(self.getBody)
         # lvl 3
-        d.addCallback(self._assignID)
+        d.addCallbacks(self._assignID, self.trapTimeout)
 
     def checkForOkStatus(self, response):
         assert response.code == self._RESPONSE_OK, "Bad response to HTTP request."
@@ -143,15 +143,15 @@ class Stranger(object):
         d = self.request('events', {'id': self.id})
         d.addCallback(self.getBody)
         d.addCallback(self.parse_raw_events)
-        d.addCallback(self.troll.feed)
+        d.addCallbacks(self.troll.feed, self.trapTimeout)
 
     def toggle_typing(self):
-        def flip(resp):
-            self.typing = not self.typing
-
         d = self.request('typing', {'id': self.id})
         d.addCallback(self.checkForOkStatus)
-        d.addCallback(flip)
+        d.addCallbacks(self._toggle_typing, self.trapTimeout)
+
+    def _toggle_typing(self, resp):
+        self.typing = not self.typing
 
     def announceDisconnect(self):
         self.request('disconnect', {'id': self.id})
