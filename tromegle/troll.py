@@ -14,7 +14,8 @@ from tromegle.listener import InteractiveViewport
 class TrollReactor(CBDictInterface):
     """Base class for Omegle API.
     """
-    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(), n=2, refresh=2.):
+    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(),
+                 n=2, refresh=2., debug=0):
         # Independent setup
         super(TrollReactor, self).__init__()
         self.listeners = WeakValueDictionary()
@@ -130,7 +131,7 @@ class TrollReactor(CBDictInterface):
 class Client(TrollReactor):
     """Extensible client for omegle.com.
     """
-    def __init__(self, listen=InteractiveViewport(), refresh=2):
+    def __init__(self, listen=InteractiveViewport(), refresh=2, debug=0):
         super(Client, self).__init__(listen=listen, n=1)
         self.refresh = 2
         self._connected = False
@@ -176,7 +177,8 @@ class Client(TrollReactor):
 class MiddleMan(TrollReactor):
     """Implementation of man-in-the-middle attack on two omegle users.
     """
-    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(), idle=(0., 0.)):
+    def __init__(self, transmog=Transmogrifier(), listen=InteractiveViewport(),
+                 idle=(0., 0.), debug=0):
         """Instantiate MiddleMan class
 
         transmog : Transmogrifier instance
