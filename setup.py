@@ -6,7 +6,7 @@ setup(
     name='tromegle',
     version='0.2.1 alpha',
     author='Louis Thibault',
-    author_email='',
+    author_email='louist87@gmail.com',
     packages=['tromegle'],
     include_package_data=True,
     install_requires=['Twisted>=11.1.0', 'blessings>=1.5'],
