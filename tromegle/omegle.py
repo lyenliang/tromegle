@@ -9,11 +9,11 @@ except:
 
 from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
+from twisted.internet.error import TimeoutError
 from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
-from twisted.python import log
 
-from tromegle.event import OmegleEvent, ID_SET
+from tromegle.event import OmegleEvent, ID_SET, TIMEOUT_EVENT
 
 
 class HTTP(Protocol):
@@ -38,10 +38,18 @@ class Stranger(object):
               "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; FDM; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 1.1.4322)",
               "Mozilla/5.0 (Windows; U; Windows NT 6.1; es-AR; rv:1.9) Gecko/2008051206 Firefox/3.0"]
 
-    def __init__(self, reactor, troll, protocol):
-        """reactor : twisted reactor instance
+    def __init__(self, reactor, troll, protocol, debug=0):
+        """
+        reactor : twisted reactor instance
+
+        troll : TrollReactor
+            TrollReactor (or subclass) to manage stranger(s)
+
         protocol : class object
             Class of protocol being used
+
+        debug : int
+            Debugging level.  0 = no debugging.
         """
         self.typing = False
         self.connected = False
@@ -65,12 +73,32 @@ class Stranger(object):
                                 Headers(header),
                                 FileBodyProducer(StringIO(data)))
 
-        return request.addErrback(log.err, 'Error sending %r to %s' % (data, api_call))
+        return request  # .addErrback(log.err, 'Error sending %r to %s' % (data, api_call))
 
     def getBody(self, response):
         body = Deferred()
         response.deliverBody(self.protocol(body))
         return body
+
+    def trapTimeout(self, err):
+        """Errback function to suppress TimeoutError exceptions,
+        optionally feeding a connectionTimeout event to self.troll,
+        which can be logged or used as a trigger for arbitrary events.
+
+        If self.debug > 1, trapTimeout will feed a connectionTimeout
+        event, otherwise it will not.
+
+        err : Exception
+            Exception passed by Deferred instance.
+
+        return : Exception or None
+        """
+        if isinstance(err, TimeoutError):
+            if self.debug:
+                self.troll.feed(OmegleEvent(self.id, TIMEOUT_EVENT, ''))
+            return None
+
+        return err
 
     def _getStrangerID(self):
         d = self.request('start', '')
