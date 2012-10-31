@@ -18,6 +18,8 @@ class TrollReactor(CBDictInterface):
                  n=2, refresh=2., debug=0):
         # Independent setup
         super(TrollReactor, self).__init__()
+        self.debug = debug
+
         self.listeners = WeakValueDictionary()
         # Argument assignment
         self.eventQueue = deque()
@@ -132,7 +134,7 @@ class Client(TrollReactor):
     """Extensible client for omegle.com.
     """
     def __init__(self, listen=InteractiveViewport(), refresh=2, debug=0):
-        super(Client, self).__init__(listen=listen, n=1)
+        super(Client, self).__init__(listen=listen, n=1, debug=debug)
         self.refresh = 2
         self._connected = False
         self.stranger = None
@@ -190,7 +192,7 @@ class MiddleMan(TrollReactor):
             idle[0] =   maximum time to wait for all connections (seconds)
             idle[1] =   maximum time to wait for an idle conversation to resume (seconds)
         """
-        super(MiddleMan, self).__init__(transmog=transmog, listen=listen)
+        super(MiddleMan, self).__init__(transmog=transmog, listen=listen, debug=debug)
         self.max_connect_time, self.max_idle_time = idle
         self.on_stoppedTyping = self.on_typing
 
