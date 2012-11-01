@@ -128,6 +128,10 @@ class InteractiveViewport(CBDictInterface):
             print msg
 
 
+class ClientViewport(CBDictInterface):
+    pass
+
+
 class EventLogger(object):
     """Class to log Tromegle events for debugging purposes.
     """

@@ -8,7 +8,7 @@ from twisted.internet import reactor
 from tromegle.omegle import Stranger, HTTP
 from tromegle.core import CBDictInterface
 from tromegle.event import isEvent, mkIterableSequence, Transmogrifier, IdleTimeoutEvent, NULL_EVENT
-from tromegle.listener import InteractiveViewport
+from tromegle.listener import InteractiveViewport, ClientViewport
 
 
 class TrollReactor(CBDictInterface):
@@ -133,7 +133,7 @@ class TrollReactor(CBDictInterface):
 class Client(TrollReactor):
     """Extensible client for omegle.com.
     """
-    def __init__(self, listen=InteractiveViewport(), refresh=2, debug=0):
+    def __init__(self, listen=ClientViewport(), refresh=2, debug=0):
         super(Client, self).__init__(listen=listen, n=1, debug=debug)
         self.refresh = 2
         self._connected = False
