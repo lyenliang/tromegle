@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from string import punctuation, whitespace
+from itertools import groupby
 
 
 def mapCapitals(phrase):
@@ -13,7 +15,7 @@ def mapCapitals(phrase):
     return tuple(char for char in map(str.islower, tuple(phrase)) if not char)
 
 
-def tokenize(phrase):
+def tokenize(phrase, sepcat=True):
     """Parse a string into words (strings separated by whitespace.
 
     All punctuation characters and typographical symbols are treated as
@@ -22,10 +24,15 @@ def tokenize(phrase):
     phrase : str
         Phrase to serparate into words.
 
+    sepcat : bool
+        Separator concatination.
+        If true, adjacent separators will be concatenated into a single token.
+
     return : list
         List of words.
     """
-    raise NotImplementedError
+    separators = dict.fromkeys(whitespace + punctuation, True)
+    return [''.join(g) for _, g in groupby(phrase, separators.get)]
 
 
 def isSymbol(char):
