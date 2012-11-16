@@ -1,20 +1,21 @@
 #!/usr/bin/env python
+import tromegle.language
 from tromegle.event import spell, Transmogrifier
 
 
 @spell
 def sex_change(t, ev, levdist=2):
     if Transmogrifier.isMessage(ev):
-        msg = ev.data
+        msg = tromegle.language.tokenize(ev.data)
         new_msg = []
 
-            # flip single-letters
+        # flip single-letters
 
-            # transform "male" into "female" & vice-versa
+        # transform "male" into "female" & vice-versa
 
-            # flip f->m && m->f in xx/yy/zz format
+        # flip f->m && m->f in xx/yy/zz format
 
-            # flip f->m && m->f in xx/yy format (ex:  m27 or 27m)
+        # flip f->m && m->f in xx/yy format (ex:  m27 or 27m)
 
         # Modify message
         new_msg = ' '.join([w for w in new_msg])

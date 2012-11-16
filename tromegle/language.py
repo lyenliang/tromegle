@@ -12,7 +12,7 @@ def mapCapitals(phrase):
     return : tuple
         Indexes of capital letters
     """
-    return tuple(char for char in map(str.islower, tuple(phrase)) if not char)
+    return tuple(i for i, boolval in enumerate(map(str.islower, phrase)) if not boolval)
 
 
 def tokenize(phrase, sepcat=True):
