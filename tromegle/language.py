@@ -16,6 +16,34 @@ def mapCapitals(phrase):
                  if not boolval and phrase[i].isalpha())
 
 
+def fuzzyCaps(n_token, o_token):
+    """Attempt to infer capitalization of a transformed token based on heuristic analysis
+    of its original form.
+
+    n_token : str
+        New (transformed) token
+
+    o_token : str
+        Original token
+
+    return : str
+        Best-guess capitalized token
+    """
+    if o_token == n_token:
+        return n_token
+
+    if o_token.istitle():
+        return n_token.title()
+
+    if o_token.islower():
+        return n_token.lower()
+
+    if o_token.isupper():
+        return n_token.upper()
+
+    return n_token.lower()
+
+
 def tokenize(phrase, sepcat=True):
     """Parse a string into words (strings separated by whitespace.
 
