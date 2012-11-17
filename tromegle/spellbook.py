@@ -3,22 +3,22 @@ import tromegle.language
 from tromegle.event import spell, Transmogrifier
 
 
+mfdict = {'m': 'f',
+           'male': 'female',
+           'guy': 'girl'}
+
+
 @spell
 def sex_change(t, ev, levdist=2):
     if Transmogrifier.isMessage(ev):
         msg = tromegle.language.tokenize(ev.data)
-        new_msg = []
 
-        # flip single-letters
+# TODO:  levenshtein distance
+        # iterate over words, flipping all matches
+        new_msg = map(tromegle.language.fuzzyCaps,
+                      (mfdict.get(token, token) for token in msg),
+                      msg)
 
-        # transform "male" into "female" & vice-versa
-
-        # flip f->m && m->f in xx/yy/zz format
-
-        # flip f->m && m->f in xx/yy format (ex:  m27 or 27m)
-
-        # Modify message
-        new_msg = ' '.join([w for w in new_msg])
         ev = Transmogrifier.modifyMessage(ev, new_msg)
 
     return ev
