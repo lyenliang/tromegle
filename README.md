@@ -18,7 +18,7 @@ tools to either observe or record conversations, or relevant portions thereof.
 Getting Tromegle
 ========
 
-You will need python version 2.7 or later to use Tromegle.  2.6 will not work because Tromegle makes extensive use
+You will need python version 2.7 or later to use Tromegle.  Tromegle 2.6 will not work because Tromegle makes extensive use
 of dictionary comprehension syntax -- a feature added in python2.7.  
 
 ###Installing through pip
