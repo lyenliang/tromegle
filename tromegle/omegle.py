@@ -133,8 +133,8 @@ class Stranger(object):
         events = json.loads(events) or None
         if events:
             events = (OmegleEvent(self.id,
-                            ev[0],
-                            None if len(ev) == 1 else ev[1])
+                                  ev[0],
+                                  None if len(ev) == 1 else ev[1])
                       for ev in events)
 
         return events
