@@ -99,7 +99,7 @@ class InteractiveViewport(CBDictInterface):
         self.write(mod_string, orig_string)
 
     def formatNotification(self, string):
-        return "{t.red}{msg}{t.normal}".format(t=self.term, msg=string)
+        return u"{t.red}{msg}{t.normal}".format(t=self.term, msg=string)
 
     def formatMessage(self, sid, msg):
         """Return a string with standard Omegle message formatting.
@@ -111,17 +111,17 @@ class InteractiveViewport(CBDictInterface):
             Message body.
         """
         strngrName = self.strangers[sid]
-        return "{t.bold}{color}{strngr}: {t.normal}{msg}".format(t=self.term, color=self.strangerColors[sid], strngr=strngrName, msg=msg)
+        return u"{t.bold}{color}{strngr}: {t.normal}{msg}".format(t=self.term, color=self.strangerColors[sid], strngr=strngrName, msg=msg)
 
     def formatCorrection(self, stranger_id, mod_string, orig_string):
         mod_string = self.formatMessage(stranger_id, mod_string)
 
         indent = ' ' * len(self.strangers[stranger_id])
-        orig_string = "{t.cyan}{0}  {msg}{t.normal}".format(indent, t=self.term, msg=orig_string)
+        orig_string = u"{t.cyan}{0}  {msg}{t.normal}".format(indent, t=self.term, msg=orig_string)
         return mod_string, orig_string
 
     def formatError(self, sid, err_msg):
-        return "{t.bold}{t.red_on_white}ERROR <{s}>: {t.normal}{t.red_on_white}{msg}{t.normal}".format(t=self.term, s=self.strangers[sid], msg=err_msg)
+        return u"{t.bold}{t.red_on_white}ERROR <{s}>: {t.normal}{t.red_on_white}{msg}{t.normal}".format(t=self.term, s=self.strangers[sid], msg=err_msg)
 
     def write(self, *args):
         """Print message to output.
@@ -183,7 +183,7 @@ class MessageLogger(CBDictInterface):
         self.log("{0} disconnected".format(self.strangers[ev.id]))
 
     def on_gotMessage(self, ev):
-        self.log("{strngr}: {msg}".format(strngr=self.strangers[ev.id], msg=ev.data))
+        self.log(u"{strngr}: {msg}".format(strngr=self.strangers[ev.id], msg=ev.data))
 
     def on_messageModified(self, ev):
         stranger = self.strangers[ev.old.id]
