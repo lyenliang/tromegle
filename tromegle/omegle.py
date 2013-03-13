@@ -66,7 +66,7 @@ class Stranger(object):
         agent = Agent(self.reactor)
         header = {'User-Agent': [self.agent],
                   'content-type': ['application/x-www-form-urlencoded; charset=utf-8']}
-                  # text/xml; charset=utf-8
+
         data = urlencode(data)
         request = agent.request('POST',
                                 self._api[api_call],
