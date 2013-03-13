@@ -4,24 +4,24 @@
 import re
 from functools import wraps
 import Levenshtein as strndist
-from unicodedata import normalize as uninorm
+import unicodedata
 
 
-def normalize_unicode(func):
+def normalize_unicode_(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         args_normed = []
         for a in args:
             if isinstance(a, unicode):
-                a = uninorm('NFD', a)
+                a = unicodedata.normalize('NFD', a)
             args_normed.append(a)
 
         kwargs_normed = {}
         for k, v in kwargs.items():
             if isinstance(k, unicode):
-                k = uninorm(a, 'NFD')
+                k = unicodedata.normalize(a, 'NFD')
             if isinstance(v, unicode):
-                v = uninorm(v, 'NFD')
+                v = unicodedata.normalize(v, 'NFD')
             kwargs_normed[k] = v
         return func(*args, **kwargs)
     return wrapper
@@ -228,7 +228,7 @@ class SubstitutionMap(dict):
 
         return ''.join(out_tokens)
 
-    @normalize_unicode
+    @normalize_unicode_
     def match(self, s1, s2):
         # use exact matching for length-1 tokens (both original and replacement)
         if len(s1) == 1 or len(s2) == 1:
