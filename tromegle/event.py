@@ -58,10 +58,10 @@ def mkIterableSequence(obj):
     return obj
 
 
-def spell(fn):
+def spell_(fn):
     """Spell decorator
     """
-    if fn is not None:  # TODO:  wrapper function to reject events for which Transmogrifier.isMessage == False
+    if fn is not None:
         return fn
     else:
         def throwNone(out, ev):
@@ -69,7 +69,7 @@ def spell(fn):
         return throwNone
 
 
-def onlyMessages(fn):
+def onlyMessages_(fn):
     """Decorator which returns non-message events unaltered and passes
     message events to the spell it wraps.
     """
