@@ -144,6 +144,10 @@ class Transmogrifier(object):
             ev = ev.old  # make sure the original message is always in .old
         return MessageModifiedEvent(new_msg, ev)
 
+    @staticmethod
+    def msg_contents_modified(msg1, msg2):
+        return msg1.strip().lower().replace(' ', '') != msg2.strip().lower().replace(' ', '')
+
     def output(self, ev):
         """Output event to the registered event queue.
         """
