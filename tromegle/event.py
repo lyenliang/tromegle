@@ -64,16 +64,21 @@ def spell_(fn):
     if fn is not None:
         return fn
     else:
-        def throwNone(out, ev):
+        def throwNone(t, ev):
             return None
         return throwNone
 
 
-def onlyMessages_(fn):
+def onlyMessages_(spell_fn):
     """Decorator which returns non-message events unaltered and passes
     message events to the spell it wraps.
     """
-    raise NotImplementedError
+    def wrapper(t, ev):
+        if t.isMessage(ev):
+            return spell_fn(t, ev)
+        else:
+            return ev
+    return wrapper
 
 
 class Transmogrifier(object):
