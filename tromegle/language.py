@@ -220,9 +220,17 @@ class SubstitutionMap(dict):
         out_tokens = []
         for token in tokens:
             for orig, replace in self.iteritems():
-                if self.match(orig, token):
-                    token = fuzzyCaps(replace, token)
-                    break  # avoid re-translating the modified token
+                if isinstance(orig, str) or isinstance(orig, unicode):
+                    if self.match(orig, token):
+                        token = fuzzyCaps(replace, token)
+                        break  # avoid re-translating the modified token
+                else:
+                    try:
+                        if re.match(orig, token):
+                            token = fuzzyCaps(replace, token)
+                            break
+                    except TypeError:
+                        raise TypeError('Key must be str, unicode or compiled regex.')                        
 
             out_tokens.append(token)
 
